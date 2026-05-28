@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
-@TeleOp(name = "Teleop", group = "DriverControl")
+@TeleOp(name = "Teleop - Safe Baseline", group = "Bringup")
 public class TeleOpFSM extends DarienOpModeFSM {
 
     @Override
