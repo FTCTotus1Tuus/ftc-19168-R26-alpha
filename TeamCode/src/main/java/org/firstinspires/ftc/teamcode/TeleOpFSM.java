@@ -48,9 +48,9 @@ public class TeleOpFSM extends LinearOpMode {
 
         while (opModeIsActive() && !isStopRequested()) {
             follower.setTeleOpDrive(
-                    -gamepad1.left_stick_y,
-                    -gamepad1.left_stick_x,
-                    -gamepad1.right_stick_x * 0.5,
+                    gamepad1.left_stick_y,
+                    gamepad1.left_stick_x,
+                    gamepad1.right_stick_x * 0.5,
                     true
             );
             follower.update();
