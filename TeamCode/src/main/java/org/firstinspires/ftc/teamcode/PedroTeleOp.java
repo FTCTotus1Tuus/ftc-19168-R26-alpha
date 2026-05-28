@@ -6,7 +6,7 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.RobotLog;
 
 @TeleOp(name = "Teleop", group = "DriverControl")
-public class TeleOpFSM extends LinearOpMode {
+public class PedroTeleOp extends LinearOpMode {
 
     private Follower follower;
 
@@ -15,7 +15,7 @@ public class TeleOpFSM extends LinearOpMode {
             follower = PedroPathingConstants.createFollower(hardwareMap);
             return follower != null;
         } catch (Throwable t) {
-            RobotLog.ee("TeleOpFSM", t, "Follower init failed");
+            RobotLog.ee("PedroTeleOp", t, "Follower init failed");
             telemetry.addData("Init Error", "%s: %s", t.getClass().getSimpleName(), t.getMessage());
             telemetry.addData("Available motors", PedroPathingConstants.getAvailableMotorNames(hardwareMap).toString());
             return false;
@@ -60,3 +60,4 @@ public class TeleOpFSM extends LinearOpMode {
         }
     }
 }
+
