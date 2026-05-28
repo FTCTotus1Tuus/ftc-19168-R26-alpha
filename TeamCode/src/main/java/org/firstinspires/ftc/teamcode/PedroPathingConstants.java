@@ -6,8 +6,15 @@ import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
 import com.pedropathing.ftc.localization.constants.DriveEncoderConstants;
 import com.pedropathing.paths.PathConstraints;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import java.util.ArrayList;
+import java.util.LinkedHashSet;
+import java.util.List;
+import java.util.Locale;
+import java.util.Set;
 
 public class PedroPathingConstants {
     public static String rightFrontMotorName = RobotHardwareNames.RIGHT_FRONT_MOTOR;
@@ -31,7 +38,22 @@ public class PedroPathingConstants {
     public static double robotWidthInches = 14.0;
     public static double robotLengthInches = 14.0;
 
+    private static final String[] LEFT_FRONT_CANDIDATES = {
+            "Left-front", "leftFront", "frontLeft", "left_front", "lf"
+    };
+    private static final String[] LEFT_REAR_CANDIDATES = {
+            "Left-rear", "leftRear", "rearLeft", "left_rear", "lr"
+    };
+    private static final String[] RIGHT_FRONT_CANDIDATES = {
+            "Right-front", "rightFront", "frontRight", "right_front", "rf"
+    };
+    private static final String[] RIGHT_REAR_CANDIDATES = {
+            "Right-rear", "rightRear", "rearRight", "right_rear", "rr"
+    };
+
     public static Follower createFollower(HardwareMap hardwareMap) {
+        resolveConfiguredMotorNames(hardwareMap);
+
         FollowerConstants followerConstants = new FollowerConstants();
         PathConstraints pathConstraints = new PathConstraints(
                 translationalConstraint,
@@ -69,6 +91,74 @@ public class PedroPathingConstants {
                 .driveEncoderLocalizer(localizerConstants)
                 .mecanumDrivetrain(driveConstants)
                 .build();
+    }
+
+    public static List<String> getAvailableMotorNames(HardwareMap hardwareMap) {
+        LinkedHashSet<String> names = new LinkedHashSet<>();
+        for (DcMotor motor : hardwareMap.getAll(DcMotor.class)) {
+            names.addAll(hardwareMap.getNamesOf(motor));
+        }
+        return new ArrayList<>(names);
+    }
+
+    private static void resolveConfiguredMotorNames(HardwareMap hardwareMap) {
+        List<String> available = getAvailableMotorNames(hardwareMap);
+        if (available.isEmpty()) {
+            return;
+        }
+
+        Set<String> availableSet = new LinkedHashSet<>(available);
+        Set<String> used = new LinkedHashSet<>();
+
+        String lf = pickName(availableSet, used, LEFT_FRONT_CANDIDATES, "left", "front");
+        String lr = pickName(availableSet, used, LEFT_REAR_CANDIDATES, "left", "rear");
+        String rf = pickName(availableSet, used, RIGHT_FRONT_CANDIDATES, "right", "front");
+        String rr = pickName(availableSet, used, RIGHT_REAR_CANDIDATES, "right", "rear");
+
+        if (lf != null) {
+            leftFrontMotorName = lf;
+        }
+        if (lr != null) {
+            leftRearMotorName = lr;
+        }
+        if (rf != null) {
+            rightFrontMotorName = rf;
+        }
+        if (rr != null) {
+            rightRearMotorName = rr;
+        }
+    }
+
+    private static String pickName(Set<String> available, Set<String> used, String[] candidates, String sideHint, String endHint) {
+        for (String candidate : candidates) {
+            String match = findCaseInsensitive(available, candidate);
+            if (match != null && !used.contains(match)) {
+                used.add(match);
+                return match;
+            }
+        }
+
+        for (String name : available) {
+            if (used.contains(name)) {
+                continue;
+            }
+            String lowered = name.toLowerCase(Locale.US);
+            if (lowered.contains(sideHint) && lowered.contains(endHint)) {
+                used.add(name);
+                return name;
+            }
+        }
+
+        return null;
+    }
+
+    private static String findCaseInsensitive(Set<String> available, String expected) {
+        for (String name : available) {
+            if (name.equalsIgnoreCase(expected)) {
+                return name;
+            }
+        }
+        return null;
     }
 
 }

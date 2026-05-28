@@ -1,41 +1,62 @@
 package org.firstinspires.ftc.teamcode;
 
+import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.util.RobotLog;
 
-@TeleOp(name = "Teleop - Safe Baseline", group = "Bringup")
-public class TeleOpFSM extends DarienOpModeFSM {
+@TeleOp(name = "Teleop", group = "DriverControl")
+public class TeleOpFSM extends LinearOpMode {
 
-    @Override
-    public boolean initControls() {
-        return super.initControls();
+    private Follower follower;
+
+    private boolean initFollower() {
+        try {
+            follower = PedroPathingConstants.createFollower(hardwareMap);
+            return follower != null;
+        } catch (Throwable t) {
+            RobotLog.ee("TeleOpFSM", t, "Follower init failed");
+            telemetry.addData("Init Error", "%s: %s", t.getClass().getSimpleName(), t.getMessage());
+            telemetry.addData("Available motors", PedroPathingConstants.getAvailableMotorNames(hardwareMap).toString());
+            return false;
+        }
     }
 
     @Override
     public void runOpMode() throws InterruptedException {
-        telemetry.addLine("SDK-only TeleOp loaded");
-        telemetry.addLine("Pedro follower is temporarily disabled for stability testing");
-        telemetry.update();
-
-        boolean initOk = initControls();
-        if (!initOk) {
-            telemetry.addLine("Init failed");
+        telemetry.addLine("Initializing Pedro teleop...");
+        if (!initFollower()) {
+            telemetry.addLine("Follower initialization failed");
             telemetry.update();
-            sleep(1500);
+
+            while (!isStarted() && !isStopRequested()) {
+                idle();
+            }
             return;
         }
 
-        waitForStart();
-        if (isStopRequested()) return;
+        telemetry.addLine("Ready");
+        telemetry.update();
 
-        while (this.opModeIsActive() && !isStopRequested()) {
-            telemetry.addData("Status", "Running");
-            telemetry.addData("Left Y", gamepad1.left_stick_y);
-            telemetry.addData("Left X", gamepad1.left_stick_x);
-            telemetry.addData("Right X", gamepad1.right_stick_x);
+        waitForStart();
+        if (isStopRequested()) {
+            return;
+        }
+
+        follower.startTeleopDrive(true);
+        follower.update();
+
+        while (opModeIsActive() && !isStopRequested()) {
+            follower.setTeleOpDrive(
+                    -gamepad1.left_stick_y,
+                    -gamepad1.left_stick_x,
+                    -gamepad1.right_stick_x * 0.5,
+                    true
+            );
+            follower.update();
 
             telemetry.update();
             idle();
-        } //while opModeIsActive
-    } //runOpMode
-
-} //TeleOpFSM class
+        }
+    }
+}
