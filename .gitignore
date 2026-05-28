@@ -79,3 +79,11 @@ lint/generated/
 lint/outputs/
 lint/tmp/
 # lint/reports/
+
+# Local temp investigation folders
+.tmp_pedro_src/
+.tmp_*/
+
+# Vendored external sample repo
+Quickstart/
+
