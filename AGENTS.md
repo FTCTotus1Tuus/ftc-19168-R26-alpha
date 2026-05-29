@@ -9,10 +9,19 @@ Two modules:
 - `TeamCode/` – all team code under `org.firstinspires.ftc.teamcode`
 
 ## Current State
-Early skeleton robot — these files exist today:
+Skeleton robot with full architecture in place — these files exist today:
+
+**Root package** (`org.firstinspires.ftc.teamcode`):
 - `RobotHardwareNames.java` – canonical hardware config string constants
 - `PedroPathingConstants.java` – Pedro Pathing follower builder + runtime motor-name resolution
-- `PedroTeleOp.java` – working TeleOp that drives with the Pedro Pathing follower
+- `PedroTeleOp.java` – original flat TeleOp, kept as diagnostic reference (`@Disabled`)
+
+**`v1/` package** (active architecture):
+- `v1/hardware/RobotHardware.java` – bulk caching setup; maps all non-Pedro devices
+- `v1/subsystems/DriveSubsystem.java` – wraps Pedro Pathing `Follower`; exposes `setTeleOpDrive()`, `getPose()`
+- `v1/core/RobotContainer.java` – composition root; owns all subsystems
+- `v1/opmodes/RobotOpMode.java` – thin `LinearOpMode` base class
+- `v1/opmodes/TeleOpMode.java` – active driver-control OpMode
 
 ## Architecture
 See the full guide for class hierarchy, package layout, code templates, startup flow, and how to add subsystems:
@@ -40,6 +49,19 @@ Remove `@Disabled` to make an OpMode appear on the Driver Station:
 - `com.acmerobotics.dashboard:dashboard:0.6.0` — FtcDashboard live tuning UI (`maven { url = "https://maven.brott.dev/" }`)
 
 **Note:** This team uses only native FTC SDK patterns for performance (bulk caching via `LynxModule.BulkCachingMode.MANUAL`) and control (custom PIDF calculator + @Config). No third-party control or hardware-optimization libraries — see `ROBOT_ARCHITECTURE_GUIDE.md` §14.
+
+## Agent Behavior Rules
+- **Ask clarifying questions before making big assumptions or going down rabbit holes.** If a request is ambiguous or could be interpreted multiple ways, ask first.
+
+## Versioning Rules
+- Keep each physical robot version in its own top-level package: `v1/`, `v2/`, etc.
+- Keep hardware-bound code version-specific (`RobotHardwareNames`, `RobotHardware`, robot-specific subsystem implementations, robot-specific constants).
+- Only move code to a shared `common/` package when it is proven robot-agnostic and used by both versions.
+- Do not split into separate repositories for the same season unless versions are operationally independent and share little or no code.
+- For Driver Station clarity, rely on OpMode annotations (not Java package names):
+  - use explicit names like `V1 TeleOp`, `V2 TeleOp`, `V1 Left Auto`
+  - use explicit groups like `v1`, `v2`, `Auto-v1`, `Auto-v2`
+- Keep unfinished or risky version branches disabled with `@Disabled` until they are field-tested.
 
 ## Build & Deploy
 ```bash

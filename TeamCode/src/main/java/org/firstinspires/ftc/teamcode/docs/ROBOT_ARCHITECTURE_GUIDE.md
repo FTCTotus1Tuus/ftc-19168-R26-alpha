@@ -20,10 +20,10 @@ This guide explains how to build and extend the FTC 19168 robot codebase so it s
    - Hardware mapping, device wiring, and behavior logic belong in lower layers.
 
 2. **Separate hardware, subsystems, services, and config.**
-   - `team/hardware/` — device mapping and safe startup defaults
-   - `team/subsystems/` — one class per mechanism or behavior area
-   - `team/services/` — follower, localization, vision, preferences
-   - `team/config/` — all tunable constants
+   - `v1/hardware/` — device mapping and safe startup defaults
+   - `v1/subsystems/` — one class per mechanism or behavior area
+   - `v1/services/` — follower, localization, vision, preferences
+   - `v1/config/` — all tunable constants
 
 3. **Use intent methods. Never expose internal state.**
    - Good: `drive.setTeleOpDrive(x, y, rx)` 
@@ -50,7 +50,7 @@ This guide explains how to build and extend the FTC 19168 robot codebase so it s
 
 ```
 org.firstinspires.ftc.teamcode
-└── team/
+└── v1/
     ├── config/           — @Config tuning constants only; no behavior
     ├── hardware/         — RobotHardware.java; all hardwareMap access lives here
     ├── subsystems/       — one class per mechanism or behavior area
@@ -63,6 +63,60 @@ org.firstinspires.ftc.teamcode
     └── testing/          — tuning and diagnostic OpModes (never deployed to competition)
 ```
 
+### 2.1 Why This Team Uses `v1/`, `v2/`, and Future Versioned Packages
+
+For this team, **yes — keeping multiple robot versions in one repository under separate top-level packages is a good approach**.
+
+It fits this codebase well because:
+- the team is building a reusable architecture, not one-off OpModes
+- junior programmers benefit from copying a known-good subsystem skeleton instead of rebuilding plumbing from scratch
+- leapfrogging between physical Robot 1 and Robot 2 is easier when both versions stay visible in one Android Studio project
+- shared season assets (vision helpers, utility math, path helpers, documentation) are easier to maintain in one place than across multiple repos
+
+**Recommended structure as the season grows:**
+```
+org.firstinspires.ftc.teamcode
+├── common/     // only robot-agnostic shared code
+├── v1/         // Robot 1 code
+└── v2/         // Robot 2 code
+```
+
+**What should stay version-specific:**
+- `RobotHardwareNames`
+- `RobotHardware`
+- subsystem implementations tied to real hardware layout
+- robot-specific config values
+- OpModes that should only run on one physical robot
+
+**What can move to `common/` later if both robots truly share it:**
+- utility classes
+- math helpers
+- vision processing code that does not depend on robot wiring
+- dashboard helper code
+- autonomous helper logic that is independent of hardware mapping
+
+**Important correction:** the FTC Driver Station does **not** organize OpModes by Java package name. Driver Station grouping comes from the `group` field on `@TeleOp` / `@Autonomous`, plus the displayed OpMode `name`.
+
+So if the team wants clean separation between robots on the Driver Station, do this intentionally:
+- use clear OpMode names like `V1 TeleOp`, `V2 TeleOp`, `V1 Left Auto`
+- use `group = "v1"` and `group = "v2"` (or `DriverControl-V1`, `Auto-V2`) instead of relying on package layout
+- disable unfinished robot versions with `@Disabled` rather than deleting them mid-season
+
+**Recommended migration plan:**
+1. Keep the currently active robot under `v1/`.
+2. When a second physical robot diverges meaningfully, clone the architecture into `v2/`.
+3. Do **not** create `common/` immediately — wait until the same code is duplicated in both versions and is clearly hardware-agnostic.
+4. Move only stable shared code into `common/`; keep hardware and OpModes version-specific.
+5. Prefix Driver Station-facing OpMode names/groups clearly so drivers cannot confuse robot builds.
+
+**When separate repositories would be better instead:**
+- the robots are for different seasons
+- the robots have fundamentally unrelated architectures
+- different programming groups need independent release cycles
+- code sharing between the robots is near zero
+
+For this team's current situation, the versioned-package approach is simpler, safer, and easier to teach than splitting into multiple repositories too early.
+
 ---
 
 ## 3. Class Architecture
@@ -71,9 +125,9 @@ org.firstinspires.ftc.teamcode
 
 ```
 LinearOpMode  (FTC SDK — never modified)
-└── RobotOpMode                   team/opmodes/RobotOpMode.java
-    ├── TeleOpMode                 team/opmodes/TeleOpMode.java
-    └── AutonomousBase             team/opmodes/auto/AutonomousBase.java
+└── RobotOpMode                   v1/opmodes/RobotOpMode.java
+    ├── TeleOpMode                 v1/opmodes/TeleOpMode.java
+    └── AutonomousBase             v1/opmodes/auto/AutonomousBase.java
         ├── RedLeftAuto
         ├── RedRightAuto
         ├── BlueLeftAuto
@@ -86,13 +140,13 @@ LinearOpMode  (FTC SDK — never modified)
 
 ```
 RobotOpMode
-└── RobotContainer                 team/core/RobotContainer.java
-    ├── RobotHardware              team/hardware/RobotHardware.java
-    ├── DriveSubsystem             team/subsystems/DriveSubsystem.java
-    ├── LocalizationService        team/services/LocalizationService.java
-    ├── VisionService              team/services/VisionService.java
-    ├── PreferencesService         team/services/PreferencesService.java
-    └── [season subsystems]        team/subsystems/ — added each season
+└── RobotContainer                 v1/core/RobotContainer.java
+    ├── RobotHardware              v1/hardware/RobotHardware.java
+    ├── DriveSubsystem             v1/subsystems/DriveSubsystem.java
+    ├── LocalizationService        v1/services/LocalizationService.java
+    ├── VisionService              v1/services/VisionService.java
+    ├── PreferencesService         v1/services/PreferencesService.java
+    └── [season subsystems]        v1/subsystems/ — added each season
 ```
 
 ### 3.3 Class Responsibilities
@@ -232,13 +286,13 @@ Pedro Pathing (`com.pedropathing:ftc:2.1.2`, `maven { url = 'https://maven.brott
 - Motor names are auto-resolved at runtime by `resolveConfiguredMotorNames()` — handles mismatched config names gracefully
 - **Runtime pose source:** always `follower.getPose()` — never read raw encoder values directly for pose
 - **TeleOp drive:** `follower.setTeleOpDrive(y, x, rx, fieldCentric)`
-- **All Pedro Pathing tuning values** live in `PedroPathingConstants`; run tuning OpModes from `team/testing/` before competition
+- **All Pedro Pathing tuning values** live in `PedroPathingConstants`; run tuning OpModes from `v1/testing/` before competition
 
 ---
 
 ## 7. Configuration Classes
 
-Every tunable value belongs in a `*Config` class under `team/config/`. Annotate with `@Config` (from **FtcDashboard** — see §14) so that `public static` fields in the class become live-editable in the dashboard web UI without redeploying.
+Every tunable value belongs in a `*Config` class under `v1/config/`. Annotate with `@Config` (from **FtcDashboard** — see §14) so that `public static` fields in the class become live-editable in the dashboard web UI without redeploying.
 
 | Class | Owns |
 |---|---|
@@ -259,18 +313,18 @@ Every tunable value belongs in a `*Config` class under `team/config/`. Annotate 
 
 Follow this order every time. Each step should compile and leave the robot in a working state.
 
-1. **Config** — `team/config/NewSubsystemConfig.java` (only if it has tunable values)
+1. **Config** — `v1/config/NewSubsystemConfig.java` (only if it has tunable values)
 2. **Hardware** — add device constant to `RobotHardwareNames.java` and mapping to `RobotHardware.java`
-3. **Subsystem** — `team/subsystems/NewSubsystem.java` with `initialize()`, `update()`, `stop()`
+3. **Subsystem** — `v1/subsystems/NewSubsystem.java` with `initialize()`, `update()`, `stop()`
 4. **Wire** — add the subsystem to `RobotContainer` (construct, init, update, stop)
 5. **Use** — call from `TeleOpMode` or an autonomous OpMode via `robot.newSubsystem.method()`
 
 Never wire a subsystem directly inside an OpMode.
 
 **Example — adding a claw:**
-- `team/config/ClawConfig.java` — servo positions for open/close
+- `v1/config/ClawConfig.java` — servo positions for open/close
 - `RobotHardware.java` — `hardwareMap.get(Servo.class, RobotHardwareNames.CLAW)`
-- `team/subsystems/ClawSubsystem.java` — `open()`, `close()`, `initialize()`
+- `v1/subsystems/ClawSubsystem.java` — `open()`, `close()`, `initialize()`
 - `RobotContainer` — creates and owns `ClawSubsystem`
 - `TeleOpMode` — calls `robot.claw.open()` on a gamepad button press
 
@@ -310,10 +364,10 @@ opModeIsActive() returns false
 
 ### `RobotOpMode` (base class)
 ```java
-package org.firstinspires.ftc.teamcode.team.opmodes;
+package org.firstinspires.ftc.teamcode.v1.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import org.firstinspires.ftc.teamcode.team.core.RobotContainer;
+import org.firstinspires.ftc.teamcode.v1.core.RobotContainer;
 
 /**
  * RobotOpMode — thin base class for all team OpModes.
@@ -403,7 +457,7 @@ public class DriveSubsystem {
 
 ### Generic class structure
 ```java
-package org.firstinspires.ftc.teamcode.team.subsystems;
+package org.firstinspires.ftc.teamcode.v1.subsystems;
 
 /**
  * ExampleSubsystem — one sentence: what does this class own?
@@ -497,10 +551,10 @@ Build in this order. Do not move to the next step until the current one compiles
 When unsure, answer these questions in order:
 
 1. Is it a physical device? → `RobotHardware`
-2. Is it a tunable constant? → `team/config/*Config.java`
-3. Is it a shared software service (follower, vision, preferences)? → `team/services/`
-4. Is it behavior for one mechanism? → `team/subsystems/`
-5. Is it orchestration (input + delegation)? → `team/opmodes/`
+2. Is it a tunable constant? → `v1/config/*Config.java`
+3. Is it a shared software service (follower, vision, preferences)? → `v1/services/`
+4. Is it behavior for one mechanism? → `v1/subsystems/`
+5. Is it orchestration (input + delegation)? → `v1/opmodes/`
 
 ---
 
@@ -534,7 +588,7 @@ public class LiftConfig {
 
 **Rules:**
 - Only `public static` (non-`final`) fields are editable from the dashboard.
-- Never annotate a subsystem class with `@Config` — config belongs in `team/config/`.
+- Never annotate a subsystem class with `@Config` — config belongs in `v1/config/`.
 - Dashboard telemetry uses `FtcDashboard.getInstance().getTelemetry()`; the driver-station telemetry object is separate.
 
 ---
@@ -596,7 +650,7 @@ while (opModeIsActive()) {
 
 The FTC SDK provides `PIDFCoefficients` — a lightweight, standard container. Write a small (15–20 line) calculator class that reads from a `@Config` class and runs error-correction math each loop.
 
-**Config class (team/config/LiftConfig.java):**
+**Config class (v1/config/LiftConfig.java):**
 ```java
 import com.acmerobotics.dashboard.config.Config;
 
@@ -611,10 +665,10 @@ public class LiftConfig {
 }
 ```
 
-**Calculator class (team/subsystems/LiftPIDFCalculator.java):**
+**Calculator class (v1/subsystems/LiftPIDFCalculator.java):**
 ```java
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.teamcode.team.config.LiftConfig;
+import org.firstinspires.ftc.teamcode.v1.config.LiftConfig;
 
 public class LiftPIDFCalculator {
     private double integralSum = 0;
