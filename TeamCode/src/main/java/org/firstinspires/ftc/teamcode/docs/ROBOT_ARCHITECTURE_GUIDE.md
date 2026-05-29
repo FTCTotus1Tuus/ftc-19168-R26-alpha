@@ -238,7 +238,7 @@ Pedro Pathing (`com.pedropathing:ftc:2.1.2`, `maven { url = 'https://maven.brott
 
 ## 7. Configuration Classes
 
-Every tunable value belongs in a `*Config` class under `team/config/`. Annotate with `@Config` for live FTC Dashboard adjustment.
+Every tunable value belongs in a `*Config` class under `team/config/`. Annotate with `@Config` (from **FtcDashboard** — see §14) so that `public static` fields in the class become live-editable in the dashboard web UI without redeploying.
 
 | Class | Owns |
 |---|---|
@@ -251,6 +251,7 @@ Every tunable value belongs in a `*Config` class under `team/config/`. Annotate 
 - No magic numbers or string literals in OpModes or subsystems — always use a named constant
 - No control flow or state in config classes — constants only
 - One config class per concern — do not merge `DriveConfig` and `VisionConfig`
+- All fields that should be dashboard-editable must be `public static` (not `final`)
 
 ---
 
@@ -500,6 +501,196 @@ When unsure, answer these questions in order:
 3. Is it a shared software service (follower, vision, preferences)? → `team/services/`
 4. Is it behavior for one mechanism? → `team/subsystems/`
 5. Is it orchestration (input + delegation)? → `team/opmodes/`
+
+---
+
+## 14. Native FTC SDK Patterns for Performance & Control
+
+Rather than relying on third-party libraries that may become unmaintained, this team uses only the native FTC SDK plus **FtcDashboard** (for live tuning and telemetry). This keeps the codebase lightweight, stable, and future-proof.
+
+---
+
+### 14.1 FtcDashboard
+
+**Maven:** `maven { url = "https://maven.brott.dev/" }`  
+**Dependency:** `implementation 'com.acmerobotics.dashboard:dashboard:0.6.0'` (or latest v0.6.x)
+
+FtcDashboard streams telemetry and lets you edit `public static` fields on any `@Config`-annotated class live from a browser at `http://192.168.43.1:8080/dash` while the OpMode is running. No restart needed.
+
+**Usage pattern (config class):**
+```java
+import com.acmerobotics.dashboard.config.Config;
+
+@Config  // exposes all public static fields to the dashboard
+public class LiftConfig {
+    public static double P = 0.005;
+    public static double I = 0.0;
+    public static double D = 0.0001;
+    public static int POS_HIGH = 2500;
+    public static int POS_TRANSFER = 1200;
+    public static int POS_DOWN = 0;
+}
+```
+
+**Rules:**
+- Only `public static` (non-`final`) fields are editable from the dashboard.
+- Never annotate a subsystem class with `@Config` — config belongs in `team/config/`.
+- Dashboard telemetry uses `FtcDashboard.getInstance().getTelemetry()`; the driver-station telemetry object is separate.
+
+---
+
+### 14.2 Native Bulk Caching (RobotHardware)
+
+The FTC SDK's `LynxModule.BulkCachingMode` dramatically improves loop speed by batching hardware reads into one I2C transaction per hub instead of many tiny reads scattered throughout subsystem `update()` methods.
+
+**Setup (in `RobotHardware.initialize()`):**
+```java
+public void initialize(HardwareMap hardwareMap) {
+    // Get all LynxModule (REV Control Hub / Expansion hub) references
+    List<LynxModule> allHubs = hardwareMap.getAll(LynxModule.class);
+
+    // Enable manual bulk caching mode on all hubs
+    for (LynxModule hub : allHubs) {
+        hub.setBulkCachingMode(LynxModule.BulkCachingMode.MANUAL);
+    }
+
+    // Now fetch all your devices (motors, servos, sensors)
+    // ...hardwareMap.get() calls for all motors, servos, sensors...
+}
+
+public void clearBulkCache() {
+    // Call this at the start of each OpMode loop
+    for (LynxModule hub : allHubs) {
+        hub.clearBulkCache();
+    }
+}
+```
+
+**Usage (in OpMode loop):**
+```java
+while (opModeIsActive()) {
+    // 1. Clear bulk cache at START of loop so all subsequent reads get fresh data
+    robot.hardware.clearBulkCache();
+
+    // 2. Update all subsystems — they read motor encoders, gyro, etc. from cache
+    robot.drive.update();
+    robot.lift.update();
+    robot.vision.update();
+
+    // 3. Write outputs (motor powers, servo positions)
+    // (no code here — subsystems already wrote them via setPower/setPosition)
+
+    telemetry.update();
+}
+```
+
+**Key rules:**
+- Store the `allHubs` list in `RobotHardware` and expose a `clearBulkCache()` method.
+- Call `clearBulkCache()` at the **start** of every OpMode loop before subsystem updates.
+- All subsequent reads from motors/sensors within the same loop pass the cached data — safe and fast.
+- Set `AUTO` mode only if you have very few devices and don't care about latency.
+
+---
+
+### 14.3 Native PIDF Control (Custom Calculator + @Config)
+
+The FTC SDK provides `PIDFCoefficients` — a lightweight, standard container. Write a small (15–20 line) calculator class that reads from a `@Config` class and runs error-correction math each loop.
+
+**Config class (team/config/LiftConfig.java):**
+```java
+import com.acmerobotics.dashboard.config.Config;
+
+@Config
+public class LiftConfig {
+    public static double P = 0.005;
+    public static double I = 0.0;
+    public static double D = 0.0001;
+    public static double F = 0.0;  // feedforward
+    public static int POS_HIGH = 2500;
+    public static int POS_TRANSFER = 1200;
+}
+```
+
+**Calculator class (team/subsystems/LiftPIDFCalculator.java):**
+```java
+import com.qualcomm.robotcore.util.ElapsedTime;
+import org.firstinspires.ftc.teamcode.team.config.LiftConfig;
+
+public class LiftPIDFCalculator {
+    private double integralSum = 0;
+    private double lastError = 0;
+    private ElapsedTime loopTimer = new ElapsedTime();
+
+    public double calculate(double setpoint, double measurement) {
+        double error = setpoint - measurement;
+        double deltaTime = loopTimer.seconds();
+        loopTimer.reset();
+
+        // Integrate error over time (with anti-windup cap)
+        integralSum += error * deltaTime;
+        integralSum = Math.max(-100, Math.min(100, integralSum));
+
+        // Derivative of error
+        double derivative = (error - lastError) / deltaTime;
+        lastError = error;
+
+        // PIDF output
+        double power = (LiftConfig.P * error)
+                     + (LiftConfig.I * integralSum)
+                     + (LiftConfig.D * derivative)
+                     + LiftConfig.F;  // constant feedforward
+
+        return Math.max(-1, Math.min(1, power));
+    }
+
+    public void reset() {
+        integralSum = 0;
+        lastError = 0;
+        loopTimer.reset();
+    }
+}
+```
+
+**Usage (in `LiftSubsystem.update()`):**
+```java
+public class LiftSubsystem {
+
+    private final DcMotorEx motor;
+    private final LiftPIDFCalculator pidf = new LiftPIDFCalculator();
+    private double targetPosition = 0;
+
+    public LiftSubsystem(HardwareMap hardwareMap) {
+        motor = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.LIFT_MOTOR);
+    }
+
+    public void update() {
+        double power = pidf.calculate(targetPosition, motor.getCurrentPosition());
+        motor.setPower(power);
+    }
+
+    public void setTargetPosition(double ticks) {
+        targetPosition = ticks;
+    }
+
+    public void stop() {
+        pidf.reset();
+        motor.setPower(0);
+    }
+}
+```
+
+**Live tuning flow:**
+1. Run your OpMode with this code.
+2. Open `http://192.168.43.1:8080/dash` in a browser.
+3. Edit `LiftConfig.P`, `.I`, `.D`, `.F` in real time.
+4. Watch the lift respond instantly (because `calculate()` reads from the config class every frame).
+5. Once tuned, copy the final values back into `LiftConfig.java` as defaults.
+
+**Why this approach:**
+- No external dependencies — 100% safe long-term.
+- Teaches junior students how PIDF actually works (P gain × error + I × integral + D × derivative).
+- Pairs perfectly with FtcDashboard for live tuning.
+- Extremely predictable — no hidden behavior.
 
 ---
 

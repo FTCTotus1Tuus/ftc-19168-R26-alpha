@@ -37,6 +37,9 @@ Remove `@Disabled` to make an OpMode appear on the Driver Station:
 - `com.pedropathing:ftc:2.1.2` — path following + TeleOp drive (`maven { url = 'https://maven.brott.dev/' }`)
 - `GoBildaPinpointDriver` — bundled in FTC SDK 10.3+; no extra Gradle dependency needed
 - FTC SDK 11.1.0 (`org.firstinspires.ftc:*`)
+- `com.acmerobotics.dashboard:dashboard:0.6.0` — FtcDashboard live tuning UI (`maven { url = "https://maven.brott.dev/" }`)
+
+**Note:** This team uses only native FTC SDK patterns for performance (bulk caching via `LynxModule.BulkCachingMode.MANUAL`) and control (custom PIDF calculator + @Config). No third-party control or hardware-optimization libraries — see `ROBOT_ARCHITECTURE_GUIDE.md` §14.
 
 ## Build & Deploy
 ```bash
