@@ -19,6 +19,7 @@ dependencies {
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.pedropathing:ftc:2.1.2'
     implementation 'com.pedropathing:telemetry:1.0.0'
+    implementation 'com.acmerobotics.dashboard:dashboard:0.6.0'
 
     // Panels remains disabled in the main app for now. We'll reintroduce it separately after
     // Pedro tuning is stable without the extra startup hooks.

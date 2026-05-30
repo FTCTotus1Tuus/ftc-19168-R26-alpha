@@ -12,6 +12,6 @@ public final class DriveConfig {
     }
 
     /** Driver turn sensitivity multiplier applied in DriveSubsystem. */
-    public static double TURN_SCALE = 0.5;
+    public static double TURN_SCALE = 0.45;
 }
 
