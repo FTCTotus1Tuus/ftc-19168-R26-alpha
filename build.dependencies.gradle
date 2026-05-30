@@ -18,8 +18,15 @@ dependencies {
     //noinspection GradleDependency
     implementation 'androidx.appcompat:appcompat:1.2.0'
     implementation 'com.pedropathing:ftc:2.1.2'
+    implementation 'com.pedropathing:telemetry:1.0.0'
 
-    // FtcDashboard — live variable tuning and telemetry via browser
-    implementation 'com.acmerobotics.dashboard:dashboard:0.6.0'
+    // Panels remains disabled in the main app for now. We'll reintroduce it separately after
+    // Pedro tuning is stable without the extra startup hooks.
+    // implementation 'com.bylazar:fullpanels:1.0.12'
+
+    // FtcDashboard is added per-flavor in TeamCode/build.gradle:
+    //   standard       → full implementation (server runs, @Config live-tuning works)
+    //   panelsTuning   → compileOnly        (@Config annotation compiles; no server at runtime — Panels replaces it)
+    // Keeping it here would bundle the server in both flavors and cause a BindException in panelsTuning.
 }
 

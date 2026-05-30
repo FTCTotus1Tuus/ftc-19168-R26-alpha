@@ -1,10 +1,16 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.v1.testing;
 
 import com.pedropathing.follower.Follower;
+import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.util.RobotLog;
 
+import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
+
+// Replaced by v1/opmodes/TeleOpMode.java — kept here as a reference skeleton.
+// Remove @Disabled to temporarily restore this OpMode for diagnostics.
+@Disabled
 @TeleOp(name = "Teleop", group = "DriverControl")
 public class PedroTeleOp extends LinearOpMode {
 
@@ -60,4 +66,5 @@ public class PedroTeleOp extends LinearOpMode {
         }
     }
 }
+
 

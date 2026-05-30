@@ -18,9 +18,23 @@ apply from: '../build.dependencies.gradle'
 android {
     namespace = 'org.firstinspires.ftc.teamcode'
 
-    compileSdk 35
+    compileSdk 34
     defaultConfig {
         minSdk 24
+    }
+    buildFeatures {
+        buildConfig true
+    }
+    flavorDimensions += 'tuningUi'
+    productFlavors {
+        standard {
+            dimension 'tuningUi'
+            buildConfigField 'boolean', 'PANELS_TUNING_ENABLED', 'false'
+        }
+        panelsTuning {
+            dimension 'tuningUi'
+            buildConfigField 'boolean', 'PANELS_TUNING_ENABLED', 'true'
+        }
     }
     packagingOptions {
         jniLibs.useLegacyPackaging true
@@ -29,4 +43,11 @@ android {
 
 dependencies {
     implementation project(':FtcRobotController')
+
+    // FtcDashboard: full server in standard flavor; compile-only in panelsTuning so @Config
+    // annotation works but no HTTP server is bundled (Panels provides the dashboard there).
+    standardImplementation 'com.acmerobotics.dashboard:dashboard:0.6.0'
+    panelsTuningCompileOnly 'com.acmerobotics.dashboard:dashboard:0.6.0'
+
+    panelsTuningImplementation 'com.bylazar:fullpanels:1.0.12'
 }

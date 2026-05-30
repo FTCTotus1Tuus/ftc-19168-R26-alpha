@@ -1,14 +1,18 @@
-package org.firstinspires.ftc.teamcode;
+package org.firstinspires.ftc.teamcode.v1.services;
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.follower.FollowerConstants;
 import com.pedropathing.ftc.FollowerBuilder;
 import com.pedropathing.ftc.drivetrains.MecanumConstants;
-import com.pedropathing.ftc.localization.constants.DriveEncoderConstants;
+import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.paths.PathConstraints;
+import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 
 import java.util.ArrayList;
 import java.util.LinkedHashSet;
@@ -22,39 +26,38 @@ public class PedroPathingConstants {
     public static String leftRearMotorName = RobotHardwareNames.LEFT_REAR_MOTOR;
     public static String leftFrontMotorName = RobotHardwareNames.LEFT_FRONT_MOTOR;
 
-    public static double maxPower = 1.0;
-    public static double xVelocity = 40;
-    public static double yVelocity = 40;
+    public static double forwardPodY = -2.42; // forward pod y offset from robot center, in inches
+    public static double strafePodX = -2.16; // strafe pod x offset from robot center, in inches
+
+    public static double weightInKg = 5.26; // kg; 11.6 lbs
+    public static double maxPower = 1;
+    public static double xVelocity = 55; // see the Forward Velocity Tuner
+    public static double yVelocity = 44; // see the Lateral Velocity Tuner
 
     public static double translationalConstraint = 0.99;
     public static double headingConstraint = 100;
     public static double translationalAccelConstraint = 1;
     public static double headingAccelConstraint = 1;
 
-    // Conservative defaults for a basic mecanum frame; tune later with Pedro tuners.
-    public static double forwardTicksToInches = 1.0;
-    public static double strafeTicksToInches = 1.0;
-    public static double turnTicksToInches = 1.0;
-    public static double robotWidthInches = 14.0;
-    public static double robotLengthInches = 14.0;
-
     private static final String[] LEFT_FRONT_CANDIDATES = {
-            "Left-front", "leftFront", "frontLeft", "left_front", "lf"
+            RobotHardwareNames.LEFT_FRONT_MOTOR, "leftFront", "frontLeft", "left_front", "lf"
     };
     private static final String[] LEFT_REAR_CANDIDATES = {
-            "Left-rear", "leftRear", "rearLeft", "left_rear", "lr"
+            RobotHardwareNames.LEFT_REAR_MOTOR, "leftRear", "rearLeft", "left_rear", "lr"
     };
     private static final String[] RIGHT_FRONT_CANDIDATES = {
-            "Right-front", "rightFront", "frontRight", "right_front", "rf"
+            RobotHardwareNames.RIGHT_FRONT_MOTOR, "rightFront", "frontRight", "right_front", "rf"
     };
     private static final String[] RIGHT_REAR_CANDIDATES = {
-            "Right-rear", "rightRear", "rearRight", "right_rear", "rr"
+            RobotHardwareNames.RIGHT_REAR_MOTOR, "rightRear", "rearRight", "right_rear", "rr"
     };
 
     public static Follower createFollower(HardwareMap hardwareMap) {
         resolveConfiguredMotorNames(hardwareMap);
 
-        FollowerConstants followerConstants = new FollowerConstants();
+        FollowerConstants followerConstants = new FollowerConstants()
+                .mass(weightInKg);
+
         PathConstraints pathConstraints = new PathConstraints(
                 translationalConstraint,
                 headingConstraint,
@@ -75,20 +78,19 @@ public class PedroPathingConstants {
                 .xVelocity(xVelocity)
                 .yVelocity(yVelocity);
 
-        DriveEncoderConstants localizerConstants = new DriveEncoderConstants()
-                .leftFrontMotorName(leftFrontMotorName)
-                .leftRearMotorName(leftRearMotorName)
-                .rightFrontMotorName(rightFrontMotorName)
-                .rightRearMotorName(rightRearMotorName)
-                .forwardTicksToInches(forwardTicksToInches)
-                .strafeTicksToInches(strafeTicksToInches)
-                .turnTicksToInches(turnTicksToInches)
-                .robotWidth(robotWidthInches)
-                .robotLength(robotLengthInches);
+
+        PinpointConstants localizerConstants = new PinpointConstants()
+                .forwardPodY(forwardPodY)
+                .strafePodX(strafePodX)
+                .distanceUnit(DistanceUnit.INCH)
+                .hardwareMapName(RobotHardwareNames.PINPOINT)
+                .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
+                .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
+                .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)
-                .driveEncoderLocalizer(localizerConstants)
+                .pinpointLocalizer(localizerConstants)
                 .mecanumDrivetrain(driveConstants)
                 .build();
     }
@@ -162,3 +164,4 @@ public class PedroPathingConstants {
     }
 
 }
+

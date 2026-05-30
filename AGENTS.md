@@ -12,11 +12,12 @@ Two modules:
 Skeleton robot with full architecture in place — these files exist today:
 
 **Root package** (`org.firstinspires.ftc.teamcode`):
-- `RobotHardwareNames.java` – canonical hardware config string constants
-- `PedroPathingConstants.java` – Pedro Pathing follower builder + runtime motor-name resolution
-- `PedroTeleOp.java` – original flat TeleOp, kept as diagnostic reference (`@Disabled`)
+- `docs/ROBOT_ARCHITECTURE_GUIDE.md` – team architecture, patterns, and conventions
 
 **`v1/` package** (active architecture):
+- `v1/hardware/RobotHardwareNames.java` – canonical hardware config string constants
+- `v1/services/PedroPathingConstants.java` – Pedro Pathing follower builder + runtime motor-name resolution
+- `v1/testing/PedroTeleOp.java` – original flat TeleOp, kept as diagnostic reference (`@Disabled`)
 - `v1/hardware/RobotHardware.java` – bulk caching setup; maps all non-Pedro devices
 - `v1/subsystems/DriveSubsystem.java` – wraps Pedro Pathing `Follower`; exposes `setTeleOpDrive()`, `getPose()`
 - `v1/core/RobotContainer.java` – composition root; owns all subsystems
@@ -29,7 +30,7 @@ See the full guide for class hierarchy, package layout, code templates, startup 
 > `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md`
 
 ## Hardware Device Names
-Names must exactly match the robot config file. Canonical names live in `RobotHardwareNames.java`:
+Names must exactly match the robot config file. Canonical names live in `v1/hardware/RobotHardwareNames.java`:
 ```java
 "Right-front", "Right-rear", "Left-rear", "Left-front"  // drive motors — kebab-case, capital first word
 "pinpoint"                                               // GoBilda Pinpoint I2C device
