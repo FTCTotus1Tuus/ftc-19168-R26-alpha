@@ -87,3 +87,4 @@ lint/tmp/
 # Vendored external sample repo
 Quickstart/
 
+/tmp_*/
