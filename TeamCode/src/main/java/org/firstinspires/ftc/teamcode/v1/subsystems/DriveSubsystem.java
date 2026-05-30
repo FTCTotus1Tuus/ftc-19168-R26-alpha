@@ -5,6 +5,7 @@ import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
@@ -25,10 +26,18 @@ public class DriveSubsystem {
 
     private Follower follower;
     private String initError = null;
+    private DcMotorEx leftFrontMotor;
+    private DcMotorEx leftRearMotor;
+    private DcMotorEx rightFrontMotor;
+    private DcMotorEx rightRearMotor;
 
     public DriveSubsystem(HardwareMap hardwareMap) {
         try {
             follower = PedroPathingConstants.createFollower(hardwareMap);
+            leftFrontMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.leftFrontMotorName);
+            leftRearMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.leftRearMotorName);
+            rightFrontMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.rightFrontMotorName);
+            rightRearMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.rightRearMotorName);
         } catch (Throwable t) {
             RobotLog.ee(TAG, t, "Follower init failed");
             initError = t.getClass().getSimpleName() + ": " + t.getMessage();
@@ -145,5 +154,38 @@ public class DriveSubsystem {
      */
     public String getInitError() {
         return initError;
+    }
+
+    /** Returns measured LF wheel speed in RPM, or 0 when unavailable. */
+    public double getLeftFrontRpm() {
+        return toRpm(leftFrontMotor);
+    }
+
+    /** Returns measured LR wheel speed in RPM, or 0 when unavailable. */
+    public double getLeftRearRpm() {
+        return toRpm(leftRearMotor);
+    }
+
+    /** Returns measured RF wheel speed in RPM, or 0 when unavailable. */
+    public double getRightFrontRpm() {
+        return toRpm(rightFrontMotor);
+    }
+
+    /** Returns measured RR wheel speed in RPM, or 0 when unavailable. */
+    public double getRightRearRpm() {
+        return toRpm(rightRearMotor);
+    }
+
+    private static double toRpm(DcMotorEx motor) {
+        if (motor == null) {
+            return 0.0;
+        }
+
+        double ticksPerSecond = motor.getVelocity();
+        double ticksPerRev = motor.getMotorType().getTicksPerRev();
+        if (ticksPerRev <= 0.0) {
+            return 0.0;
+        }
+        return (ticksPerSecond * 60.0) / ticksPerRev;
     }
 }

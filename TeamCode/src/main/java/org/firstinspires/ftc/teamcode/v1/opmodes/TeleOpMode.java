@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
+
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
 /**
  * TeleOpMode — driver-control OpMode.
@@ -41,6 +41,13 @@ public class TeleOpMode extends RobotOpMode {
             // 3. Telemetry.
             telemetry.addData("Pose",     robot.drive.getPose());
             telemetry.addData("Drive OK", robot.drive.isAvailable());
+            telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
+            telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
+            telemetry.addData("RPM RF", "%.1f", robot.drive.getRightFrontRpm());
+            telemetry.addData("RPM RR", "%.1f", robot.drive.getRightRearRpm());
+            double avgFrontRpm = (robot.drive.getLeftFrontRpm() + robot.drive.getRightFrontRpm()) / 2.0;
+            double avgRearRpm = (robot.drive.getLeftRearRpm() + robot.drive.getRightRearRpm()) / 2.0;
+            telemetry.addData("Front/Rear RPM Ratio", "%.3f", avgRearRpm > 0.1 ? avgFrontRpm / avgRearRpm : 0.0);
             telemetry.update();
 
             idle();

@@ -8,10 +8,13 @@ import com.pedropathing.ftc.localization.constants.PinpointConstants;
 import com.pedropathing.paths.PathConstraints;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigurationType;
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 
 import java.util.ArrayList;
@@ -54,6 +57,7 @@ public class PedroPathingConstants {
 
     public static Follower createFollower(HardwareMap hardwareMap) {
         resolveConfiguredMotorNames(hardwareMap);
+        applyFrontGearCompensation(hardwareMap);
 
         FollowerConstants followerConstants = new FollowerConstants()
                 .mass(weightInKg);
@@ -161,6 +165,31 @@ public class PedroPathingConstants {
             }
         }
         return null;
+    }
+
+    private static void applyFrontGearCompensation(HardwareMap hardwareMap) {
+        if (!DriveConfig.ENABLE_FRONT_GEAR_COMPENSATION) {
+            return;
+        }
+
+        double cappedFraction = Math.max(0.05, Math.min(1.0, DriveConfig.FRONT_WHEEL_MAX_RPM_FRACTION));
+        applyMaxRpmFraction(hardwareMap, leftFrontMotorName, cappedFraction);
+        applyMaxRpmFraction(hardwareMap, rightFrontMotorName, cappedFraction);
+    }
+
+    private static void applyMaxRpmFraction(HardwareMap hardwareMap, String motorName, double maxRpmFraction) {
+        if (motorName == null) {
+            return;
+        }
+
+        try {
+            DcMotorEx motor = hardwareMap.get(DcMotorEx.class, motorName);
+            MotorConfigurationType motorType = motor.getMotorType().clone();
+            motorType.setAchieveableMaxRPMFraction(maxRpmFraction);
+            motor.setMotorType(motorType);
+        } catch (Exception ignored) {
+            // If a motor can't be configured here, follower initialization will still surface mapping issues.
+        }
     }
 
 }
