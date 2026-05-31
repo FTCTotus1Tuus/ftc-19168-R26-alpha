@@ -12,9 +12,10 @@ public final class DriveForwardOneConfig {
     }
 
     // Start pose (inches, radians).
-    public static double START_X_IN = AutoConfig.START_X_IN;
-    public static double START_Y_IN = AutoConfig.START_Y_IN;
-    public static double START_HEADING_RAD = AutoConfig.START_HEADING_RAD;
+    // Defaults to red audience anchor; switch to a different anchor as needed.
+    public static double START_X_IN = AutoConfig.RED_AUDIENCE_START_X_IN;
+    public static double START_Y_IN = AutoConfig.RED_AUDIENCE_START_Y_IN;
+    public static double START_HEADING_RAD = AutoConfig.RED_AUDIENCE_START_HEADING_RAD;
 
     // End pose defaults: one tile forward from start while holding heading.
     public static double END_X_IN = START_X_IN;
