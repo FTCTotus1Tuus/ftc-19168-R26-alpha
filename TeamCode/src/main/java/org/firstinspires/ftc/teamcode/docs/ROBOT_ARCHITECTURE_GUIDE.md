@@ -304,13 +304,20 @@ Every tunable value belongs in a `*Config` class under `v1/config/`. Annotate wi
 | `DriveConfig` | drive scaling, field-centric toggle, max power |
 | `OdometryConfig` | Pinpoint pod offsets, wheel diameter, ticks/revolution |
 | `VisionConfig` | AprilTag IDs, camera exposure and gain, vision timeouts |
-| `AutoConfig` | starting poses, parking poses, timing margins |
+| `AutoConfig` | shared autonomous defaults (timing margins, shared start/park defaults) |
+| `*AutoName*Config` | route-specific constants for a single autonomous OpMode |
 
 **Rules:**
 - No magic numbers or string literals in OpModes or subsystems — always use a named constant
 - No control flow or state in config classes — constants only
 - One config class per concern — do not merge `DriveConfig` and `VisionConfig`
 - All fields that should be dashboard-editable must be `public static` (not `final`)
+
+**Autonomous config scaling rule-of-thumb:**
+- Keep `AutoConfig` for shared autonomous values used across multiple routes (global timing margins, common defaults, shared tolerances).
+- If a constant is used by only one autonomous route, create a route-specific config class (for example `DriveForwardOneConfig`, `RedLeftAutoConfig`) and keep those values there.
+- Practical guideline: if a value is used by 2+ autos, shared config is fine; if used by only 1 auto, keep it route-local.
+- This keeps student-facing config files readable even when the team has many autonomous OpModes.
 
 ---
 

@@ -15,6 +15,7 @@ import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigu
 
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
+import org.firstinspires.ftc.teamcode.v1.config.OdometryConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 
 import java.util.ArrayList;
@@ -29,8 +30,7 @@ public class PedroPathingConstants {
     public static String leftRearMotorName = RobotHardwareNames.LEFT_REAR_MOTOR;
     public static String leftFrontMotorName = RobotHardwareNames.LEFT_FRONT_MOTOR;
 
-    public static double forwardPodY = -2.42; // forward pod y offset from robot center, in inches
-    public static double strafePodX = -2.16; // strafe pod x offset from robot center, in inches
+    // Odometry pod offsets now live in OdometryConfig (single source of truth).
 
     public static double weightInKg = 5.26; // kg; 11.6 lbs
     public static double maxPower = 1;
@@ -84,13 +84,16 @@ public class PedroPathingConstants {
 
 
         PinpointConstants localizerConstants = new PinpointConstants()
-                .forwardPodY(forwardPodY)
-                .strafePodX(strafePodX)
+                .forwardPodY(OdometryConfig.FORWARD_POD_Y_IN)
+                .strafePodX(OdometryConfig.STRAFE_POD_X_IN)
                 .distanceUnit(DistanceUnit.INCH)
                 .hardwareMapName(RobotHardwareNames.PINPOINT)
                 .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
                 .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
                 .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+
+        // TODO: if/when a localizer path needs direct encoder conversion tuning, source
+        // wheel diameter/ticks-per-rev from OdometryConfig as well.
 
         return new FollowerBuilder(followerConstants, hardwareMap)
                 .pathConstraints(pathConstraints)

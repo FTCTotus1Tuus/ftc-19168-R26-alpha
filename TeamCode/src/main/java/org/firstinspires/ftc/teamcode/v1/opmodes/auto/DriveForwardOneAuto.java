@@ -6,6 +6,8 @@ import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
+import org.firstinspires.ftc.teamcode.v1.config.DriveForwardOneConfig;
+
 /**
  * DriveForwardOneAuto — drives forward exactly one FTC tile (24 in) and stops.
  *
@@ -32,20 +34,22 @@ public class DriveForwardOneAuto extends AutonomousBase {
 
     // ── Tuning constants ─────────────────────────────────────────────────────────────────────────
 
-    /** One FTC floor tile = 24 inches. */
-    private static final double TILE_IN = 24.0;
+    // Route-specific config keeps this auto tunable without bloating shared AutoConfig.
+    private static Pose startPose() {
+        return new Pose(
+                DriveForwardOneConfig.START_X_IN,
+                DriveForwardOneConfig.START_Y_IN,
+                DriveForwardOneConfig.START_HEADING_RAD
+        );
+    }
 
-    /**
-     * Starting field pose. Update x/y/heading once the actual field position is known.
-     * Heading is in radians (0 = facing Pedro +X axis).
-     */
-    private static final Pose START_POSE = new Pose(0, 0, 0);
-
-    /**
-     * End pose: 1 tile forward in the +Y direction while keeping heading constant.
-     * Change the Y offset or use X if your robot's forward maps differently.
-     */
-    private static final Pose END_POSE = new Pose(0, TILE_IN, 0);
+    private static Pose endPose() {
+        return new Pose(
+                DriveForwardOneConfig.END_X_IN,
+                DriveForwardOneConfig.END_Y_IN,
+                DriveForwardOneConfig.END_HEADING_RAD
+        );
+    }
 
     // ── Path ─────────────────────────────────────────────────────────────────────────────────────
 
@@ -65,11 +69,14 @@ public class DriveForwardOneAuto extends AutonomousBase {
             return;
         }
 
-        robot.drive.setStartingPose(START_POSE);
+        Pose startPose = startPose();
+        Pose endPose = endPose();
+
+        robot.drive.setStartingPose(startPose);
 
         driveForwardPath = robot.drive.pathBuilder()
-                .addPath(new BezierLine(START_POSE, END_POSE))
-                .setConstantHeadingInterpolation(START_POSE.getHeading())
+                .addPath(new BezierLine(startPose, endPose))
+                .setConstantHeadingInterpolation(startPose.getHeading())
                 .build();
         pathReady = true;
     }
@@ -82,8 +89,8 @@ public class DriveForwardOneAuto extends AutonomousBase {
         buildPath();
 
         telemetry.addLine("V1 Drive Forward 1 Tile — Ready");
-        telemetry.addData("Start", START_POSE);
-        telemetry.addData("End  ", END_POSE);
+        telemetry.addData("Start", startPose());
+        telemetry.addData("End  ", endPose());
         telemetry.update();
 
         waitForStart();
