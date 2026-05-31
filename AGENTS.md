@@ -54,6 +54,10 @@ Remove `@Disabled` to make an OpMode appear on the Driver Station:
 ## Agent Behavior Rules
 - **Ask clarifying questions before making big assumptions or going down rabbit holes.** If a request is ambiguous or could be interpreted multiple ways, ask first.
 
+## Commit Message Output Convention
+- When the user asks for a commit message, return the commit title and body in **one single copy/paste-ready text block**.
+- Do not split title/body across multiple disconnected blocks unless the user explicitly asks for alternatives.
+
 ## Versioning Rules
 - Keep each physical robot version in its own top-level package: `v1/`, `v2/`, etc.
 - Keep hardware-bound code version-specific (`RobotHardwareNames`, `RobotHardware`, robot-specific subsystem implementations, robot-specific constants).

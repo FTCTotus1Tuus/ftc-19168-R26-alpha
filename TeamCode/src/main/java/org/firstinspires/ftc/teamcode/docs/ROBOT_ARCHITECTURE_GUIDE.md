@@ -49,6 +49,10 @@ This guide explains how to build and extend the FTC 19168 robot codebase so it s
    - Do not remove these scaffolding comments during cleanup unless the related feature is fully implemented.
    - When creating new architecture files, add short "extend here" placeholders where future team members are likely to add code.
 
+9. **AI commit drafts should be copy/paste ready.**
+   - When requesting a commit message from an AI agent, provide title + body in one single text block.
+   - Keep wording concise and aligned to the exact staged diff.
+
 ---
 
 ## 2. Package Layout
