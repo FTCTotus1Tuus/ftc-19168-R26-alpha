@@ -4,12 +4,13 @@ import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathBuilder;
 import com.pedropathing.paths.PathChain;
-import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
+import com.qualcomm.robotcore.hardware.HardwareMap;
 
 /**
  * DriveSubsystem — wraps the Pedro Pathing Follower.
@@ -24,20 +25,14 @@ public class DriveSubsystem {
 
     private static final String TAG = "DriveSubsystem";
 
+    private final RobotHardware hardware;
     private Follower follower;
     private String initError = null;
-    private DcMotorEx leftFrontMotor;
-    private DcMotorEx leftRearMotor;
-    private DcMotorEx rightFrontMotor;
-    private DcMotorEx rightRearMotor;
 
-    public DriveSubsystem(HardwareMap hardwareMap) {
+    public DriveSubsystem(HardwareMap hardwareMap, RobotHardware hardware) {
+        this.hardware = hardware;
         try {
             follower = PedroPathingConstants.createFollower(hardwareMap);
-            leftFrontMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.leftFrontMotorName);
-            leftRearMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.leftRearMotorName);
-            rightFrontMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.rightFrontMotorName);
-            rightRearMotor = hardwareMap.get(DcMotorEx.class, PedroPathingConstants.rightRearMotorName);
         } catch (Throwable t) {
             RobotLog.ee(TAG, t, "Follower init failed");
             initError = t.getClass().getSimpleName() + ": " + t.getMessage();
@@ -158,22 +153,22 @@ public class DriveSubsystem {
 
     /** Returns measured LF wheel speed in RPM, or 0 when unavailable. */
     public double getLeftFrontRpm() {
-        return toRpm(leftFrontMotor);
+        return toRpm(hardware.getLeftFrontMotor());
     }
 
     /** Returns measured LR wheel speed in RPM, or 0 when unavailable. */
     public double getLeftRearRpm() {
-        return toRpm(leftRearMotor);
+        return toRpm(hardware.getLeftRearMotor());
     }
 
     /** Returns measured RF wheel speed in RPM, or 0 when unavailable. */
     public double getRightFrontRpm() {
-        return toRpm(rightFrontMotor);
+        return toRpm(hardware.getRightFrontMotor());
     }
 
     /** Returns measured RR wheel speed in RPM, or 0 when unavailable. */
     public double getRightRearRpm() {
-        return toRpm(rightRearMotor);
+        return toRpm(hardware.getRightRearMotor());
     }
 
     private static double toRpm(DcMotorEx motor) {

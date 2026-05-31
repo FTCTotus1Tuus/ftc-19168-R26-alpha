@@ -45,7 +45,7 @@ public class RobotContainer {
 
         // Construct subsystems — no initialization yet; that happens in initialize().
         hardware = new RobotHardware();
-        drive    = new DriveSubsystem(hardwareMap);
+        drive    = new DriveSubsystem(hardwareMap, hardware);
 
         localization = new LocalizationService(hardwareMap, telemetry);
         vision       = new VisionService(telemetry);

@@ -44,6 +44,11 @@ This guide explains how to build and extend the FTC 19168 robot codebase so it s
    - An FSM has a private `State` enum and conditional transitions between states.
    - An OpMode base class is not an FSM. A simple toggle is not an FSM.
 
+8. **Preserve and add extension placeholders for junior developers.**
+   - Keep clear `TODO`/stub/comment guide blocks that show where future hardware, subsystems, or logic should be added.
+   - Do not remove these scaffolding comments during cleanup unless the related feature is fully implemented.
+   - When creating new architecture files, add short "extend here" placeholders where future team members are likely to add code.
+
 ---
 
 ## 2. Package Layout
@@ -328,6 +333,8 @@ Never wire a subsystem directly inside an OpMode.
 - `RobotContainer` — creates and owns `ClawSubsystem`
 - `TeleOpMode` — calls `robot.claw.open()` on a gamepad button press
 
+**Junior-dev scaffolding rule:** in each touched file, keep or add a small placeholder block that shows where the next season mechanism should be wired (for example, "Season devices" in `RobotHardware`, "Season subsystems" in `RobotContainer`, or "TODO: add controls" in an OpMode).
+
 ---
 
 ## 9. Startup and Shutdown Flow
@@ -543,6 +550,7 @@ Build in this order. Do not move to the next step until the current one compiles
 - Do not bypass `RobotContainer` to wire subsystems directly in an OpMode
 - Do not add season-specific logic to `RobotOpMode` — it must remain stable across seasons
 - Do not let a class grow until it is hard to explain in one sentence — split it instead
+- Do not delete helpful TODO/stub guidance comments that are intentionally left as extension points for students
 
 ---
 

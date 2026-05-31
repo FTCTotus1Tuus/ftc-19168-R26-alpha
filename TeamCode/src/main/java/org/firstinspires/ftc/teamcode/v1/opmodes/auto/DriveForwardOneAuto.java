@@ -19,6 +19,12 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
  * ───────────────────────────────────────────────────────────────────────────────────────────────
  *
  * Remove {@code @Disabled} when the starting pose has been confirmed on the field.
+ *
+ * Tiny validation checklist (run each time this auto is changed):
+ * 1) Verify START_POSE and END_POSE match your field side and tile orientation.
+ * 2) Run once with wheels off-ground to confirm drive direction and heading behavior.
+ * 3) Run on-field at low risk; confirm it moves exactly one tile and stops cleanly.
+ * 4) If drift is visible, retune Pedro constants before competition use.
  */
 //@Disabled
 @Autonomous(name = "V1 Drive Forward 1 Tile", group = "Auto-v1")
@@ -44,6 +50,7 @@ public class DriveForwardOneAuto extends AutonomousBase {
     // ── Path ─────────────────────────────────────────────────────────────────────────────────────
 
     private PathChain driveForwardPath;
+    private boolean pathReady;
 
     // ── AutonomousBase contract ───────────────────────────────────────────────────────────────────
 
@@ -53,12 +60,18 @@ public class DriveForwardOneAuto extends AutonomousBase {
      */
     @Override
     protected void buildPath() {
+        pathReady = false;
+        if (!robot.drive.isAvailable() || robot.drive.pathBuilder() == null) {
+            return;
+        }
+
         robot.drive.setStartingPose(START_POSE);
 
         driveForwardPath = robot.drive.pathBuilder()
                 .addPath(new BezierLine(START_POSE, END_POSE))
                 .setConstantHeadingInterpolation(START_POSE.getHeading())
                 .build();
+        pathReady = true;
     }
 
     // ── OpMode entry point ────────────────────────────────────────────────────────────────────────
@@ -74,7 +87,18 @@ public class DriveForwardOneAuto extends AutonomousBase {
         telemetry.update();
 
         waitForStart();
-        if (isStopRequested()) return;
+        if (isStopRequested()) {
+            stopRobot();
+            return;
+        }
+
+        if (!pathReady) {
+            telemetry.addLine("Drive/path unavailable. Check motor config and follower initialization.");
+            telemetry.update();
+            saveFinalState();
+            stopRobot();
+            return;
+        }
 
         // ── Execute path ──────────────────────────────────────────────────────────────────────────
         robot.drive.followPath(driveForwardPath, /* holdEnd= */ true);

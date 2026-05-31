@@ -8,6 +8,6 @@ public final class RobotHardwareNames {
     public static final String RIGHT_REAR_MOTOR = "Right-rear";
     public static final String LEFT_REAR_MOTOR = "Left-rear";
     public static final String LEFT_FRONT_MOTOR = "Left-front";
-    public static final String PINPOINT = "odo";
+    public static final String PINPOINT = "pinpoint";
 }
 

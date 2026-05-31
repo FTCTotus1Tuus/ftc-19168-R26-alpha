@@ -24,7 +24,10 @@ public class TeleOpMode extends RobotOpMode {
         telemetry.update();
 
         waitForStart();
-        if (isStopRequested()) return;
+        if (isStopRequested()) {
+            stopRobot();
+            return;
+        }
 
         while (opModeIsActive() && !isStopRequested()) {
 
