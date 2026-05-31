@@ -1,8 +1,10 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes.auto;
 
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.teamcode.v1.opmodes.RobotOpMode;
+import org.firstinspires.ftc.teamcode.v1.services.PreferencesService;
 
 /**
  * AutonomousBase — shared base class for all v1 autonomous OpModes.
@@ -23,6 +25,7 @@ import org.firstinspires.ftc.teamcode.v1.opmodes.RobotOpMode;
 public abstract class AutonomousBase extends RobotOpMode {
 
     private static final String TAG = "AutonomousBase";
+    protected String allianceColor = PreferencesService.ALLIANCE_UNKNOWN;
 
     // ── Route building ───────────────────────────────────────────────────────────────────────────
 
@@ -31,6 +34,14 @@ public abstract class AutonomousBase extends RobotOpMode {
      * Called after initRobot() and before waitForStart().
      */
     protected abstract void buildPath();
+
+    /**
+     * Optional helper for subclasses to declare alliance before saveFinalState().
+     * Keep values constrained to PreferencesService.ALLIANCE_* constants.
+     */
+    protected void setAllianceColor(String allianceColor) {
+        this.allianceColor = allianceColor;
+    }
 
     // ── Post-autonomous handoff ──────────────────────────────────────────────────────────────────
 
@@ -41,8 +52,14 @@ public abstract class AutonomousBase extends RobotOpMode {
      */
     protected void saveFinalState() {
         try {
-            // TODO: robot.preferences.saveAllianceColor(allianceColor);
-            // TODO: robot.preferences.savePose(robot.drive.getPose());
+            robot.preferences.saveAllianceColor(allianceColor);
+
+            Pose finalPose = robot.drive.getPose();
+            if (finalPose != null) {
+                robot.preferences.savePose(finalPose);
+            }
+
+            // TODO: add additional handoff fields here when auto routes diverge by strategy.
         } catch (Throwable t) {
             RobotLog.ww(TAG, t, "Could not save final autonomous state; TeleOp will use default pose.");
         }

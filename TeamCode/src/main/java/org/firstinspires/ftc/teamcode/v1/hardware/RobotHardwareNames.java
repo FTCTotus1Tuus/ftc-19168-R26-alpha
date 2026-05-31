@@ -9,5 +9,6 @@ public final class RobotHardwareNames {
     public static final String LEFT_REAR_MOTOR = "Left-rear";
     public static final String LEFT_FRONT_MOTOR = "Left-front";
     public static final String PINPOINT = "pinpoint";
+    public static final String WEBCAM_NAME = "Webcam 1";
 }
 

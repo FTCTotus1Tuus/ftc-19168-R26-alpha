@@ -5,6 +5,7 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 
 import java.util.List;
 
@@ -24,6 +25,7 @@ public class RobotHardware {
     private DcMotorEx leftRearMotor;
     private DcMotorEx leftFrontMotor;
     private GoBildaPinpointDriver pinpoint;
+    private WebcamName webcam;
 
     /**
      * Maps all hardware devices and enables manual bulk caching on every REV hub.
@@ -54,6 +56,13 @@ public class RobotHardware {
             pinpoint = hardwareMap.get(GoBildaPinpointDriver.class, RobotHardwareNames.PINPOINT);
         } catch (Exception ignored) {
             pinpoint = null;
+        }
+
+        // Optional vision hardware: Logitech webcam on USB.
+        try {
+            webcam = hardwareMap.get(WebcamName.class, RobotHardwareNames.WEBCAM_NAME);
+        } catch (Exception ignored) {
+            webcam = null;
         }
 
         // ── Season devices ───────────────────────────────────────────────────────────────────────
@@ -117,6 +126,10 @@ public class RobotHardware {
 
     public GoBildaPinpointDriver getPinpoint() {
         return pinpoint;
+    }
+
+    public WebcamName getWebcam() {
+        return webcam;
     }
 }
 

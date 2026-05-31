@@ -47,9 +47,9 @@ public class RobotContainer {
         hardware = new RobotHardware();
         drive    = new DriveSubsystem(hardwareMap, hardware);
 
-        localization = new LocalizationService(hardwareMap, telemetry);
-        vision       = new VisionService(telemetry);
         preferences  = new PreferencesService();
+        localization = new LocalizationService(hardware, drive, preferences, telemetry);
+        vision       = new VisionService(hardware, telemetry);
 
         // Season subsystems:
         //   lift = new LiftSubsystem(hardwareMap);
@@ -64,7 +64,11 @@ public class RobotContainer {
         // 1. Hardware layer (bulk caching setup + direct device mapping)
         hardware.initialize(hardwareMap);
 
-        // 2. Drive
+        // 2. Preferences and localization (seed pose before drive teleop startup)
+        preferences.initialize();
+        localization.initialize();
+
+        // 3. Drive
         if (drive.isAvailable()) {
             drive.initialize();
         } else {
@@ -74,12 +78,10 @@ public class RobotContainer {
                     PedroPathingConstants.getAvailableMotorNames(hardwareMap).toString());
         }
 
-        // 3. Core services (must not block startup)
-        localization.initialize();
+        // 4. Vision (must not block startup)
         vision.initialize();
-        preferences.initialize();
 
-        // 4. Season subsystems:
+        // 5. Season subsystems:
         //   lift.initialize();
     }
 
