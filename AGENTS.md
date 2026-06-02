@@ -34,7 +34,7 @@ When this file and the architecture guide overlap, treat the architecture guide 
 ## Hardware Device Names
 Names must exactly match the robot config file. Canonical names live in `v1/hardware/RobotHardwareNames.java`:
 ```java
-"Right-front", "Right-rear", "Left-rear", "Left-front"  // drive motors — kebab-case, capital first word
+"rightFront", "rightRear", "leftRear", "leftFront"      // drive motors — exact camelCase names
 "pinpoint"                                               // GoBilda Pinpoint I2C device
 ```
 

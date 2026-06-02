@@ -9,6 +9,7 @@ import static org.firstinspires.ftc.teamcode.v1.testing.pedroPathing.Tuning.tele
 
 import org.firstinspires.ftc.teamcode.BuildConfig;
 import org.firstinspires.ftc.teamcode.v1.config.PedroPathingConfig;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
 
 import com.pedropathing.follower.Follower;
@@ -1753,10 +1754,10 @@ class TuningTelemetry {
         } else {
             this.runtimeBanner = "Tuning UI: standard (Driver Station telemetry)";
         }
-        this.driveMapBanner = "Drive map LF=" + PedroPathingConstants.leftFrontMotorName
-                + " LR=" + PedroPathingConstants.leftRearMotorName
-                + " RF=" + PedroPathingConstants.rightFrontMotorName
-                + " RR=" + PedroPathingConstants.rightRearMotorName;
+        this.driveMapBanner = "Drive map LF=" + RobotHardwareNames.LEFT_FRONT_MOTOR
+                + " LR=" + RobotHardwareNames.LEFT_REAR_MOTOR
+                + " RF=" + RobotHardwareNames.RIGHT_FRONT_MOTOR
+                + " RR=" + RobotHardwareNames.RIGHT_REAR_MOTOR;
         this.driveLimitsBanner = "Drive limits maxPower=" + PedroPathingConfig.DRIVE_MAX_POWER
                 + " xVel=" + PedroPathingConfig.DRIVE_X_VELOCITY
                 + " yVel=" + PedroPathingConfig.DRIVE_Y_VELOCITY;
