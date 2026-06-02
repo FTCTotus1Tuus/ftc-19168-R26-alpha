@@ -8,6 +8,7 @@ import static org.firstinspires.ftc.teamcode.v1.testing.pedroPathing.Tuning.stop
 import static org.firstinspires.ftc.teamcode.v1.testing.pedroPathing.Tuning.telemetryM;
 
 import org.firstinspires.ftc.teamcode.BuildConfig;
+import org.firstinspires.ftc.teamcode.v1.config.PedroPathingConfig;
 import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
 
 import com.pedropathing.follower.Follower;
@@ -1756,9 +1757,9 @@ class TuningTelemetry {
                 + " LR=" + PedroPathingConstants.leftRearMotorName
                 + " RF=" + PedroPathingConstants.rightFrontMotorName
                 + " RR=" + PedroPathingConstants.rightRearMotorName;
-        this.driveLimitsBanner = "Drive limits maxPower=" + PedroPathingConstants.maxPower
-                + " xVel=" + PedroPathingConstants.xVelocity
-                + " yVel=" + PedroPathingConstants.yVelocity;
+        this.driveLimitsBanner = "Drive limits maxPower=" + PedroPathingConfig.DRIVE_MAX_POWER
+                + " xVel=" + PedroPathingConfig.DRIVE_X_VELOCITY
+                + " yVel=" + PedroPathingConfig.DRIVE_Y_VELOCITY;
 
         PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{runtimeBanner});
         PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{DRAWING_BANNER});

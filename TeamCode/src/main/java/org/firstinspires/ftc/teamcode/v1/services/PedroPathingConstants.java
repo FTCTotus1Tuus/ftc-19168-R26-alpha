@@ -16,6 +16,7 @@ import com.qualcomm.robotcore.hardware.configuration.typecontainers.MotorConfigu
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.v1.config.OdometryConfig;
+import org.firstinspires.ftc.teamcode.v1.config.PedroPathingConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 
 import java.util.ArrayList;
@@ -31,16 +32,6 @@ public class PedroPathingConstants {
     public static String leftFrontMotorName = RobotHardwareNames.LEFT_FRONT_MOTOR;
 
     // Odometry pod offsets now live in OdometryConfig (single source of truth).
-
-    public static double weightInKg = 5.26; // kg; 11.6 lbs
-    public static double maxPower = 0.5;
-    public static double xVelocity = 33; // at maxPower = 0.5; see the Forward Velocity Tuner
-    public static double yVelocity = 23; // at maxPower = 0.5; see the Lateral Velocity Tuner
-
-    public static double translationalConstraint = 0.99;
-    public static double headingConstraint = 100;
-    public static double translationalAccelConstraint = 1;
-    public static double headingAccelConstraint = 1;
 
     private static final String[] LEFT_FRONT_CANDIDATES = {
             RobotHardwareNames.LEFT_FRONT_MOTOR, "leftFront", "frontLeft", "left_front", "lf"
@@ -60,17 +51,17 @@ public class PedroPathingConstants {
         applyFrontGearCompensation(hardwareMap);
 
         FollowerConstants followerConstants = new FollowerConstants()
-                .mass(weightInKg);
+                .mass(PedroPathingConfig.FOLLOWER_WEIGHT_IN_KG);
 
         PathConstraints pathConstraints = new PathConstraints(
-                translationalConstraint,
-                headingConstraint,
-                translationalAccelConstraint,
-                headingAccelConstraint
+                PedroPathingConfig.PATH_TRANSLATIONAL_CONSTRAINT,
+                PedroPathingConfig.PATH_HEADING_CONSTRAINT,
+                PedroPathingConfig.PATH_TRANSLATIONAL_ACCEL_CONSTRAINT,
+                PedroPathingConfig.PATH_HEADING_ACCEL_CONSTRAINT
         );
 
         MecanumConstants driveConstants = new MecanumConstants()
-                .maxPower(maxPower)
+                .maxPower(PedroPathingConfig.DRIVE_MAX_POWER)
                 .rightFrontMotorName(rightFrontMotorName)
                 .rightRearMotorName(rightRearMotorName)
                 .leftRearMotorName(leftRearMotorName)
@@ -79,8 +70,8 @@ public class PedroPathingConstants {
                 .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
                 .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
                 .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
-                .xVelocity(xVelocity)
-                .yVelocity(yVelocity);
+                .xVelocity(PedroPathingConfig.DRIVE_X_VELOCITY)
+                .yVelocity(PedroPathingConfig.DRIVE_Y_VELOCITY);
 
 
         PinpointConstants localizerConstants = new PinpointConstants()

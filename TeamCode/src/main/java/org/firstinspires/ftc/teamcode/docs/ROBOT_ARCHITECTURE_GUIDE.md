@@ -295,7 +295,7 @@ Pedro Pathing (`com.pedropathing:ftc:2.1.2`, `maven { url = 'https://maven.brott
 - Motor names are auto-resolved at runtime by `resolveConfiguredMotorNames()` — handles mismatched config names gracefully
 - **Runtime pose source:** always `follower.getPose()` — never read raw encoder values directly for pose
 - **TeleOp drive:** `follower.setTeleOpDrive(y, x, rx, isRobotCentric)`
-- **All Pedro Pathing tuning values** live in `PedroPathingConstants`; run tuning OpModes from `v1/testing/` before competition
+- **All Pedro Pathing tuning values** live in `PedroPathingConfig`; run tuning OpModes from `v1/testing/` before competition
 
 ---
 
