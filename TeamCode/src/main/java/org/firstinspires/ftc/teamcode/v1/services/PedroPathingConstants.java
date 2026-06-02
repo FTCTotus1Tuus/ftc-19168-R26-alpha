@@ -33,9 +33,9 @@ public class PedroPathingConstants {
     // Odometry pod offsets now live in OdometryConfig (single source of truth).
 
     public static double weightInKg = 5.26; // kg; 11.6 lbs
-    public static double maxPower = 1;
-    public static double xVelocity = 55; // see the Forward Velocity Tuner
-    public static double yVelocity = 44; // see the Lateral Velocity Tuner
+    public static double maxPower = 0.5;
+    public static double xVelocity = 33; // at maxPower = 0.5; see the Forward Velocity Tuner
+    public static double yVelocity = 23; // at maxPower = 0.5; see the Lateral Velocity Tuner
 
     public static double translationalConstraint = 0.99;
     public static double headingConstraint = 100;
@@ -89,8 +89,12 @@ public class PedroPathingConstants {
                 .distanceUnit(DistanceUnit.INCH)
                 .hardwareMapName(RobotHardwareNames.PINPOINT)
                 .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-                .forwardEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD)
-                .strafeEncoderDirection(GoBildaPinpointDriver.EncoderDirection.FORWARD);
+                .forwardEncoderDirection(OdometryConfig.FORWARD_ENCODER_REVERSED
+                        ? GoBildaPinpointDriver.EncoderDirection.REVERSED
+                        : GoBildaPinpointDriver.EncoderDirection.FORWARD)
+                .strafeEncoderDirection(OdometryConfig.STRAFE_ENCODER_REVERSED
+                        ? GoBildaPinpointDriver.EncoderDirection.REVERSED
+                        : GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
         // TODO: if/when a localizer path needs direct encoder conversion tuning, source
         // wheel diameter/ticks-per-rev from OdometryConfig as well.

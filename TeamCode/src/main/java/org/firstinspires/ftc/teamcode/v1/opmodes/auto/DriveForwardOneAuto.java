@@ -1,10 +1,8 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes.auto;
 
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveForwardOneConfig;
 
@@ -15,8 +13,8 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveForwardOneConfig;
  * Motors are never touched directly; all motion flows through robot.drive.
  *
  * ── Coordinate note ────────────────────────────────────────────────────────────────────────────
- * Starting pose is (0, 0, heading=0). The path drives in the +Y direction, which is the
- * robot's "forward" when facing Pedro heading=0. Adjust START_POSE and END_POSE once the
+ * Starting pose is (0, 0, heading=0). The path drives in the +X direction, which is the
+ * robot's "forward" when facing Pedro heading=0 in this project setup. Adjust START_POSE and END_POSE once the
  * alliance starting position is confirmed on the real field.
  * ───────────────────────────────────────────────────────────────────────────────────────────────
  *
@@ -27,8 +25,13 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveForwardOneConfig;
  * 2) Run once with wheels off-ground to confirm drive direction and heading behavior.
  * 3) Run on-field at low risk; confirm it moves exactly one tile and stops cleanly.
  * 4) If drift is visible, retune Pedro constants before competition use.
+ *
+ * Follow-up tuning order once the robot is closer to final match weight:
+ * 1) Finish the normal battery/mechanism loadout and verify all four wheels share load as expected.
+ * 2) Re-check straight-line distance on a fresh battery before touching heading behavior.
+ * 3) Tune Pedro drive/translation response for repeatable one-tile moves.
+ * 4) Only then revisit small end-heading drift that may currently be dominated by mecanum slip.
  */
-//@Disabled
 @Autonomous(name = "V1 Drive Forward 1 Tile", group = "Auto-v1")
 public class DriveForwardOneAuto extends AutonomousBase {
 
@@ -44,17 +47,17 @@ public class DriveForwardOneAuto extends AutonomousBase {
     }
 
     private static Pose endPose() {
-        return new Pose(
-                DriveForwardOneConfig.END_X_IN,
-                DriveForwardOneConfig.END_Y_IN,
-                DriveForwardOneConfig.END_HEADING_RAD
-        );
+        double endXIn = DriveForwardOneConfig.START_X_IN
+                + (DriveForwardOneConfig.FORWARD_DISTANCE_IN * DriveForwardOneConfig.FORWARD_AXIS_SIGN_X);
+        double endYIn = DriveForwardOneConfig.START_Y_IN + DriveForwardOneConfig.STRAFE_OFFSET_IN;
+        return new Pose(endXIn, endYIn, DriveForwardOneConfig.START_HEADING_RAD);
     }
 
     // ── Path ─────────────────────────────────────────────────────────────────────────────────────
 
     private PathChain driveForwardPath;
-    private boolean pathReady;
+    private Pose plannedStartPose;
+    private Pose plannedEndPose;
 
     // ── AutonomousBase contract ───────────────────────────────────────────────────────────────────
 
@@ -64,34 +67,23 @@ public class DriveForwardOneAuto extends AutonomousBase {
      */
     @Override
     protected void buildPath() {
-        pathReady = false;
-        if (!robot.drive.isAvailable() || robot.drive.pathBuilder() == null) {
-            return;
-        }
-
-        Pose startPose = startPose();
-        Pose endPose = endPose();
-
-        robot.drive.setStartingPose(startPose);
-
-        driveForwardPath = robot.drive.pathBuilder()
-                .addPath(new BezierLine(startPose, endPose))
-                .setConstantHeadingInterpolation(startPose.getHeading())
-                .build();
-        pathReady = true;
+        plannedStartPose = startPose();
+        plannedEndPose = endPose();
+        driveForwardPath = buildDriveOnlyStraightPath(plannedStartPose, plannedEndPose);
     }
 
     // ── OpMode entry point ────────────────────────────────────────────────────────────────────────
 
     @Override
-    public void runOpMode() throws InterruptedException {
+    public void runOpMode() {
         initRobot();
         buildPath();
 
-        telemetry.addLine("V1 Drive Forward 1 Tile — Ready");
-        telemetry.addData("Start", startPose());
-        telemetry.addData("End  ", endPose());
-        telemetry.update();
+        showStraightDriveReadyTelemetry(
+                "V1 Drive Forward 1 Tile — Ready",
+                plannedStartPose,
+                plannedEndPose
+        );
 
         waitForStart();
         if (isStopRequested()) {
@@ -99,7 +91,7 @@ public class DriveForwardOneAuto extends AutonomousBase {
             return;
         }
 
-        if (!pathReady) {
+        if (driveForwardPath == null) {
             telemetry.addLine("Drive/path unavailable. Check motor config and follower initialization.");
             telemetry.update();
             saveFinalState();
@@ -107,17 +99,15 @@ public class DriveForwardOneAuto extends AutonomousBase {
             return;
         }
 
-        // ── Execute path ──────────────────────────────────────────────────────────────────────────
-        robot.drive.followPath(driveForwardPath, /* holdEnd= */ true);
-
-        while (opModeIsActive() && robot.drive.isFollowing()) {
-            robot.hardware.clearBulkCache();
-            robot.drive.update();
-
-            telemetry.addLine("Following path…");
-            telemetry.addData("Pose", robot.drive.getPose());
-            telemetry.update();
-        }
+        followDriveOnlyStraightPath(
+                driveForwardPath,
+                plannedStartPose,
+                plannedEndPose,
+                DriveForwardOneConfig.MAX_AUTO_TIME_S,
+                DriveForwardOneConfig.MAX_TRAVEL_FROM_START_IN,
+                DriveForwardOneConfig.END_PROGRESS_TOLERANCE_IN,
+                DriveForwardOneConfig.END_SETTLE_TIME_S
+        );
 
         // ── Finish ────────────────────────────────────────────────────────────────────────────────
         saveFinalState();

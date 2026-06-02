@@ -101,6 +101,17 @@ public class DriveSubsystem {
     }
 
     /**
+     * Uses Pedro's drive-only path mode, matching the library's straight-line drive tuner.
+     * This leaves translational path following enabled while avoiding heading-hold corrections.
+     */
+    public void enableDriveOnlyPathMode() {
+        if (follower != null) {
+            follower.deactivateAllPIDFs();
+            follower.activateDrive();
+        }
+    }
+
+    /**
      * Starts following a pre-built PathChain.
      *
      * @param pathChain the chain to follow, built via {@link #pathBuilder()}.
