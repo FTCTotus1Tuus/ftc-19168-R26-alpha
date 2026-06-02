@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
+import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
@@ -51,7 +52,9 @@ public class TeleOpMode extends RobotOpMode {
             );
 
             // 3. Telemetry.
-            telemetry.addData("Pose",      robot.drive.getPose());
+            Pose _pose = robot.drive.getPose();
+            telemetry.addData("Pose", _pose == null ? "N/A"
+                    : String.format("(%.2f, %.2f) %.2f\u00b0", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
