@@ -4,41 +4,43 @@ import com.acmerobotics.dashboard.config.Config;
 
 /**
  * DriveConfig — tunable drive behavior constants for TeleOp.
- * Exposed through FtcDashboard via @Config.
+ * Exposed through FtcDashboard via @Config using uppercase group prefixes.
  */
 @Config
 public final class DriveConfig {
     private DriveConfig() {
     }
 
-    // Encoder constants for goBILDA 5203 in 4x mode.
-    public static double TICKS_PER_ROTATION = 28 * 4;
+    // Prefixes provide pseudo-groups in FTC Dashboard's flat field list.
 
-    // Human-player reset origin offset from robot center.
-    public static double ROBOT_CENTER_OFFSET_X = 8.5;
-    public static double ROBOT_CENTER_OFFSET_Y = 8.25;
+    // ENCODER_*: motor encoder conversion values.
+    public static double ENCODER_TICKS_PER_ROTATION = 28 * 4;
 
-    // TeleOp drive shaping.
-    public static double ROTATION_SCALE = 0.5;
-    public static double SPEED_SCALE = 1.0;
-    public static double SPEED_SCALE_TURN = 0.8;
-    public static double INPUT_EXPONENT = 3.0;
-    public static double DRIVE_DEADZONE = 0.1;
+    // POSE_RESET_*: origin offset from robot center.
+    public static double POSE_RESET_ROBOT_CENTER_OFFSET_X = 8.5;
+    public static double POSE_RESET_ROBOT_CENTER_OFFSET_Y = 8.25;
+
+    // TELEOP_*: driver control shaping.
+    public static double TELEOP_ROTATION_SCALE = 0.5;
+    public static double TELEOP_SPEED_SCALE = 1.0;
+    public static double TELEOP_SPEED_SCALE_TURN = 0.8;
+    public static double TELEOP_INPUT_EXPONENT = 3.0;
+    public static double TELEOP_DRIVE_DEADZONE = 0.1;
 
     /**
      * Minimum speed multiplier applied when right_trigger is fully depressed.
      * 0.3 = 30% of normal speed at full trigger; blends linearly back to 1.0 at rest.
      * Tune this to whatever feels comfortable for fine scoring maneuvers.
      */
-    public static double PRECISION_SCALE = 0.3;
+    public static double TELEOP_PRECISION_SCALE = 0.3;
 
     /** Enables front-wheel RPM limiting to compensate for faster front gearing. */
-    public static boolean ENABLE_FRONT_GEAR_COMPENSATION = true;
+    public static boolean GEAR_COMP_ENABLE_FRONT_RPM_LIMITING = true;
 
     /**
      * Max RPM fraction applied to both front motors.
      * 0.75 matches a front drivetrain that is ~4/3 faster than the rear drivetrain.
      */
-    public static double FRONT_WHEEL_MAX_RPM_FRACTION = 0.75;
+    public static double GEAR_COMP_FRONT_WHEEL_MAX_RPM_FRACTION = 0.75;
 }
 

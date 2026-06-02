@@ -38,22 +38,22 @@ public class TeleOpMode extends RobotOpMode {
             // 2. Read input and drive.
             applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
-                    gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.ROTATION_SCALE)
-                    gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.ROTATION_SCALE)
-                    gamepad1.right_trigger,  // precision: full press → PRECISION_SCALE speed
-                    DriveConfig.DRIVE_DEADZONE,
-                    DriveConfig.INPUT_EXPONENT,
-                    DriveConfig.SPEED_SCALE,
-                    DriveConfig.SPEED_SCALE_TURN,
-                    DriveConfig.ROTATION_SCALE,
-                    DriveConfig.PRECISION_SCALE,
+                    gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
+                    gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
+                    gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
+                    DriveConfig.TELEOP_DRIVE_DEADZONE,
+                    DriveConfig.TELEOP_INPUT_EXPONENT,
+                    DriveConfig.TELEOP_SPEED_SCALE,
+                    DriveConfig.TELEOP_SPEED_SCALE_TURN,
+                    DriveConfig.TELEOP_ROTATION_SCALE,
+                    DriveConfig.TELEOP_PRECISION_SCALE,
                     false // TODO: wire this up when AutoParking is built
             );
 
             // 3. Telemetry.
             telemetry.addData("Pose",      robot.drive.getPose());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
-            telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.PRECISION_SCALE)) * 100);
+            telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
             telemetry.addData("RPM RF", "%.1f", robot.drive.getRightFrontRpm());

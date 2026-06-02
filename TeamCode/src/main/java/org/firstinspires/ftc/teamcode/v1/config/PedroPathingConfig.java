@@ -4,6 +4,7 @@ import com.acmerobotics.dashboard.config.Config;
 
 /**
  * PedroPathingConfig — dashboard-tunable path follower and drivetrain limits.
+ * Uses uppercase group prefixes so related fields stay grouped in Dashboard.
  */
 @Config
 public final class PedroPathingConfig {

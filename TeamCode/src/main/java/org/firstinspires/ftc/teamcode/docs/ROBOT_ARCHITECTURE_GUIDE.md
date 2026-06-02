@@ -305,8 +305,9 @@ Every tunable value belongs in a `*Config` class under `v1/config/`. Annotate wi
 
 | Class | Owns |
 |---|---|
-| `DriveConfig` | drive scaling, field-centric toggle, max power |
-| `OdometryConfig` | Pinpoint pod offsets, wheel diameter, ticks/revolution |
+| `DriveConfig` | TeleOp input shaping, RPM compensation, reset offsets |
+| `OdometryConfig` | Pinpoint pod offsets/signs, odometry encoder conversion placeholders |
+| `PedroPathingConfig` | follower mass, drive limits, path constraints |
 | `VisionConfig` | AprilTag IDs, camera exposure and gain, vision timeouts |
 | `AutoConfig` | shared autonomous defaults (timing margins, shared start/park defaults) |
 | `*AutoName*Config` | route-specific constants for a single autonomous OpMode |
@@ -316,6 +317,7 @@ Every tunable value belongs in a `*Config` class under `v1/config/`. Annotate wi
 - No control flow or state in config classes — constants only
 - One config class per concern — do not merge `DriveConfig` and `VisionConfig`
 - All fields that should be dashboard-editable must be `public static` (not `final`)
+- Use uppercase `<GROUP>_*` field prefixes (for example, `TELEOP_*`, `PINPOINT_*`, `PATH_*`) so FTC Dashboard shows related tunables together in its flat field list
 
 **Autonomous config scaling rule-of-thumb:**
 - Keep `AutoConfig` for shared autonomous values used across multiple routes (global timing margins, common defaults, shared tolerances).
@@ -610,6 +612,7 @@ public class LiftConfig {
 **Rules:**
 - Only `public static` (non-`final`) fields are editable from the dashboard.
 - Never annotate a subsystem class with `@Config` — config belongs in `v1/config/`.
+- Prefer uppercase `<GROUP>_*` prefixes in config field names to create dashboard-friendly pseudo-groups.
 - Dashboard telemetry uses `FtcDashboard.getInstance().getTelemetry()`; the driver-station telemetry object is separate.
 
 ---

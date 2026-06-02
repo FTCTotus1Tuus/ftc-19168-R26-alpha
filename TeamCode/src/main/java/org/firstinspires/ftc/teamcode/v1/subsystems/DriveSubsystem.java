@@ -67,11 +67,11 @@ public class DriveSubsystem {
      *
      * @param forward  left_stick_y  — negative when stick is pushed up (FTC SDK convention)
      * @param strafe   left_stick_x  — positive when stick is pushed right
-     * @param turn     right_stick_x — scaled by DriveConfig.ROTATION_SCALE for driver precision
+     * @param turn     right_stick_x — scaled by DriveConfig.TELEOP_ROTATION_SCALE for driver precision
      */
     public void setTeleOpDrive(double forward, double strafe, double turn) {
         if (follower != null) {
-            follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.ROTATION_SCALE, true);
+            follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.TELEOP_ROTATION_SCALE, true);
             follower.update();
         }
     }

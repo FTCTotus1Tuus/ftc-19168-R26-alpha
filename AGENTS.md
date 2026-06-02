@@ -1,5 +1,5 @@
 # AGENTS.md – AI Coding Agent Guide
-*Last updated: May 29, 2026 — revisit when new subsystems or libraries are added.*
+*Last updated: June 2, 2026 — revisit when new subsystems or libraries are added.*
 
 ## Project Overview
 FTC Team 19168 robot controller app for the DECODE (2025-2026) season. Runs on Android (minSdk 24, compileSdk 35, Java 1.8 source/target). Built with **Gradle** in Android Studio Ladybug (2024.2+).
@@ -29,6 +29,8 @@ See the full guide for class hierarchy, package layout, code templates, startup 
 
 > `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md`
 
+When this file and the architecture guide overlap, treat the architecture guide as the source of truth for package boundaries, config ownership, and lifecycle structure.
+
 ## Hardware Device Names
 Names must exactly match the robot config file. Canonical names live in `v1/hardware/RobotHardwareNames.java`:
 ```java
@@ -53,6 +55,12 @@ Remove `@Disabled` to make an OpMode appear on the Driver Station:
 
 ## Agent Behavior Rules
 - **Ask clarifying questions before making big assumptions or going down rabbit holes.** If a request is ambiguous or could be interpreted multiple ways, ask first.
+
+## Config Naming Convention
+- Keep dashboard-tunable constants in `v1/config/*Config.java`, not in subsystem/service classes.
+- Use uppercase `<GROUP>_*` prefixes for dashboard fields (for example, `TELEOP_*`, `PINPOINT_*`, `PATH_*`) so related values stay grouped in FTC Dashboard's flat field list.
+- Keep one config class per concern; if a new feature has many tunables, create a dedicated `*Config` class.
+- For full rationale and examples, follow `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md` §7 and §14.1.
 
 ## Commit Message Output Convention
 - When the user asks for a commit message, return the commit title and body in **one single copy/paste-ready text block**.

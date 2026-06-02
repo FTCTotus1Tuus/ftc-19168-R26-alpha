@@ -75,15 +75,15 @@ public class PedroPathingConstants {
 
 
         PinpointConstants localizerConstants = new PinpointConstants()
-                .forwardPodY(OdometryConfig.FORWARD_POD_Y_IN)
-                .strafePodX(OdometryConfig.STRAFE_POD_X_IN)
+                .forwardPodY(OdometryConfig.PINPOINT_FORWARD_POD_Y_IN)
+                .strafePodX(OdometryConfig.PINPOINT_STRAFE_POD_X_IN)
                 .distanceUnit(DistanceUnit.INCH)
                 .hardwareMapName(RobotHardwareNames.PINPOINT)
                 .encoderResolution(GoBildaPinpointDriver.GoBildaOdometryPods.goBILDA_4_BAR_POD)
-                .forwardEncoderDirection(OdometryConfig.FORWARD_ENCODER_REVERSED
+                .forwardEncoderDirection(OdometryConfig.PINPOINT_FORWARD_ENCODER_REVERSED
                         ? GoBildaPinpointDriver.EncoderDirection.REVERSED
                         : GoBildaPinpointDriver.EncoderDirection.FORWARD)
-                .strafeEncoderDirection(OdometryConfig.STRAFE_ENCODER_REVERSED
+                .strafeEncoderDirection(OdometryConfig.PINPOINT_STRAFE_ENCODER_REVERSED
                         ? GoBildaPinpointDriver.EncoderDirection.REVERSED
                         : GoBildaPinpointDriver.EncoderDirection.FORWARD);
 
@@ -166,11 +166,11 @@ public class PedroPathingConstants {
     }
 
     private static void applyFrontGearCompensation(HardwareMap hardwareMap) {
-        if (!DriveConfig.ENABLE_FRONT_GEAR_COMPENSATION) {
+        if (!DriveConfig.GEAR_COMP_ENABLE_FRONT_RPM_LIMITING) {
             return;
         }
 
-        double cappedFraction = Math.max(0.05, Math.min(1.0, DriveConfig.FRONT_WHEEL_MAX_RPM_FRACTION));
+        double cappedFraction = Math.max(0.05, Math.min(1.0, DriveConfig.GEAR_COMP_FRONT_WHEEL_MAX_RPM_FRACTION));
         applyMaxRpmFraction(hardwareMap, leftFrontMotorName, cappedFraction);
         applyMaxRpmFraction(hardwareMap, rightFrontMotorName, cappedFraction);
     }
