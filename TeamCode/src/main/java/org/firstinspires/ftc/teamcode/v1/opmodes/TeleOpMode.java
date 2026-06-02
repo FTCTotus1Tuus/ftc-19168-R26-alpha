@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
 /**
  * TeleOpMode — driver-control OpMode.
@@ -35,10 +36,16 @@ public class TeleOpMode extends RobotOpMode {
             robot.hardware.clearBulkCache();
 
             // 2. Read input and drive.
-            robot.drive.setTeleOpDrive(
+            applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
                     gamepad1.left_stick_x,   // strafe
-                    gamepad1.right_stick_x   // turn     (scaled by DriveConfig.TURN_SCALE)
+                    gamepad1.right_stick_x,   // turn     (scaled by DriveConfig.ROTATION_SCALE)
+                    DriveConfig.DRIVE_DEADZONE,
+                    DriveConfig.INPUT_EXPONENT,
+                    DriveConfig.SPEED_SCALE,
+                    DriveConfig.SPEED_SCALE_TURN,
+                    DriveConfig.ROTATION_SCALE,
+                    false // TODO: wire this up when AutoParking is built
             );
 
             // 3. Telemetry.
@@ -58,4 +65,52 @@ public class TeleOpMode extends RobotOpMode {
 
         stopRobot();
     }
+
+    public void applyTeleOpDrive(
+            double leftStickY,
+            double leftStickX,
+            double rightStickX,
+            double deadzone,
+            double inputExponent,
+            double speedScale,
+            double speedScaleTurn,
+            double rotationScale,
+            boolean isAutoParking
+    ) {
+        if (isAutoParking) {
+            // Auto-park owns drive commands while active.
+            return;
+        }
+
+        // Circular deadzone for the translation stick; keep turn deadzoning per-axis.
+        // We treat the left stick as one 2D vector so diagonal inputs behave the same
+        // as straight inputs. This avoids the "cross-shaped" deadzone you get when X
+        // and Y are filtered separately.
+        // magnitude = the stick's distance from center, measured with the Pythagorean
+        // theorem (hypotenuse of the X/Y triangle).
+        double magnitude = Math.hypot(leftStickX, leftStickY);
+        // Once the stick is outside the deadzone, remap the remaining range so the
+        // driver still gets the full 0.0 to 1.0 control span.
+        double translationScale = (magnitude <= deadzone || magnitude == 0)
+                ? 0
+                : (magnitude - deadzone) / (1.0 - deadzone);
+        // Convert the scaled magnitude back into X/Y components by keeping the same
+        // direction, then shrinking or growing the vector with translationScale.
+        double rawY = (translationScale == 0) ? 0 : (leftStickY / magnitude) * translationScale;
+        double rawX = (translationScale == 0) ? 0 : (leftStickX / magnitude) * translationScale;
+        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
+
+        // Exponential shaping gives finer low-speed control while preserving full-range output.
+        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponent);
+        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponent);
+        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponent);
+
+        double driveScale = (rawR != 0) ? speedScaleTurn : speedScale;
+        robot.drive.setTeleOpDrive(
+                shapedY * driveScale,
+                shapedX * driveScale,
+                shapedR * rotationScale
+        );
+    }
+
 }

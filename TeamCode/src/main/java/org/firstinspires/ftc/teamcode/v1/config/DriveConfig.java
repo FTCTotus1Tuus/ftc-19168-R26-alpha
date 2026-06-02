@@ -11,8 +11,19 @@ public final class DriveConfig {
     private DriveConfig() {
     }
 
-    /** Driver turn sensitivity multiplier applied in DriveSubsystem. */
-    public static double TURN_SCALE = 0.45;
+    // Encoder constants for goBILDA 5203 in 4x mode.
+    public static double TICKS_PER_ROTATION = 28 * 4;
+
+    // Human-player reset origin offset from robot center.
+    public static double ROBOT_CENTER_OFFSET_X = 8.5;
+    public static double ROBOT_CENTER_OFFSET_Y = 8.25;
+
+    // TeleOp drive shaping.
+    public static double ROTATION_SCALE = 0.5;
+    public static double SPEED_SCALE = 1.0;
+    public static double SPEED_SCALE_TURN = 0.8;
+    public static double INPUT_EXPONENT = 3.0;
+    public static double DRIVE_DEADZONE = 0.1;
 
     /** Enables front-wheel RPM limiting to compensate for faster front gearing. */
     public static boolean ENABLE_FRONT_GEAR_COMPENSATION = true;

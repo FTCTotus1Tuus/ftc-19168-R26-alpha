@@ -294,7 +294,7 @@ Pedro Pathing (`com.pedropathing:ftc:2.1.2`, `maven { url = 'https://maven.brott
 - The follower is created via `PedroPathingConstants.createFollower(hardwareMap)` (already implemented)
 - Motor names are auto-resolved at runtime by `resolveConfiguredMotorNames()` — handles mismatched config names gracefully
 - **Runtime pose source:** always `follower.getPose()` — never read raw encoder values directly for pose
-- **TeleOp drive:** `follower.setTeleOpDrive(y, x, rx, fieldCentric)`
+- **TeleOp drive:** `follower.setTeleOpDrive(y, x, rx, isRobotCentric)`
 - **All Pedro Pathing tuning values** live in `PedroPathingConstants`; run tuning OpModes from `v1/testing/` before competition
 
 ---
@@ -459,7 +459,9 @@ public class DriveSubsystem {
     }
 
     public void setTeleOpDrive(double x, double y, double rx) {
-        follower.setTeleOpDrive(y, x, rx, true);
+        // Pedro Pathing: setTeleOpDrive(forward, strafe, turn, isRobotCentric)
+        // Pass false for field-centric, true for robot-centric.
+        follower.setTeleOpDrive(y, x, rx, false);
         follower.update();
     }
 

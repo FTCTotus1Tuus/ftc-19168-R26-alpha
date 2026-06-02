@@ -63,15 +63,15 @@ public class DriveSubsystem {
     // ── TeleOp ───────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Drives the robot using field-centric mecanum control. Call once per loop in TeleOp.
+     * Drives the robot using robot-centric mecanum control. Call once per loop in TeleOp.
      *
      * @param forward  left_stick_y  — negative when stick is pushed up (FTC SDK convention)
      * @param strafe   left_stick_x  — positive when stick is pushed right
-     * @param turn     right_stick_x — scaled by DriveConfig.TURN_SCALE for driver precision
+     * @param turn     right_stick_x — scaled by DriveConfig.ROTATION_SCALE for driver precision
      */
     public void setTeleOpDrive(double forward, double strafe, double turn) {
         if (follower != null) {
-            follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.TURN_SCALE, true);
+            follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.ROTATION_SCALE, true);
             follower.update();
         }
     }
