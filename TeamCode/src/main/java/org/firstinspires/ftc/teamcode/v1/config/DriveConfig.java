@@ -25,6 +25,13 @@ public final class DriveConfig {
     public static double INPUT_EXPONENT = 3.0;
     public static double DRIVE_DEADZONE = 0.1;
 
+    /**
+     * Minimum speed multiplier applied when right_trigger is fully depressed.
+     * 0.3 = 30% of normal speed at full trigger; blends linearly back to 1.0 at rest.
+     * Tune this to whatever feels comfortable for fine scoring maneuvers.
+     */
+    public static double PRECISION_SCALE = 0.3;
+
     /** Enables front-wheel RPM limiting to compensate for faster front gearing. */
     public static boolean ENABLE_FRONT_GEAR_COMPENSATION = true;
 

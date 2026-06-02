@@ -38,19 +38,22 @@ public class TeleOpMode extends RobotOpMode {
             // 2. Read input and drive.
             applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
-                    gamepad1.left_stick_x,   // strafe
-                    gamepad1.right_stick_x,   // turn     (scaled by DriveConfig.ROTATION_SCALE)
+                    gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.ROTATION_SCALE)
+                    gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.ROTATION_SCALE)
+                    gamepad1.right_trigger,  // precision: full press → PRECISION_SCALE speed
                     DriveConfig.DRIVE_DEADZONE,
                     DriveConfig.INPUT_EXPONENT,
                     DriveConfig.SPEED_SCALE,
                     DriveConfig.SPEED_SCALE_TURN,
                     DriveConfig.ROTATION_SCALE,
+                    DriveConfig.PRECISION_SCALE,
                     false // TODO: wire this up when AutoParking is built
             );
 
             // 3. Telemetry.
-            telemetry.addData("Pose",     robot.drive.getPose());
-            telemetry.addData("Drive OK", robot.drive.isAvailable());
+            telemetry.addData("Pose",      robot.drive.getPose());
+            telemetry.addData("Drive OK",  robot.drive.isAvailable());
+            telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
             telemetry.addData("RPM RF", "%.1f", robot.drive.getRightFrontRpm());
@@ -70,11 +73,13 @@ public class TeleOpMode extends RobotOpMode {
             double leftStickY,
             double leftStickX,
             double rightStickX,
+            double rightTrigger,
             double deadzone,
             double inputExponent,
             double speedScale,
             double speedScaleTurn,
             double rotationScale,
+            double precisionScale,
             boolean isAutoParking
     ) {
         if (isAutoParking) {
@@ -105,11 +110,19 @@ public class TeleOpMode extends RobotOpMode {
         double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponent);
         double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponent);
 
+        // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
         double driveScale = (rawR != 0) ? speedScaleTurn : speedScale;
+
+        // Precision mode: right_trigger blends smoothly from full speed (trigger at rest)
+        // down to precisionScale (trigger fully pressed). Useful near the scoring zone.
+        // At trigger = 0.0 → multiplier = 1.0 (no change).
+        // At trigger = 1.0 → multiplier = precisionScale (e.g. 30% speed).
+        double precisionMultiplier = 1.0 - rightTrigger * (1.0 - precisionScale);
+
         robot.drive.setTeleOpDrive(
-                shapedY * driveScale,
-                shapedX * driveScale,
-                shapedR * rotationScale
+                shapedY * driveScale * precisionMultiplier,
+                shapedX * driveScale * precisionMultiplier,
+                shapedR * rotationScale * precisionMultiplier
         );
     }
 
