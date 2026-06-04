@@ -318,6 +318,7 @@ Every tunable value belongs in a `*Config` class under `v1/config/`. Annotate wi
 - One config class per concern — do not merge `DriveConfig` and `VisionConfig`
 - All fields that should be dashboard-editable must be `public static` (not `final`)
 - Use uppercase `<GROUP>_*` field prefixes (for example, `TELEOP_*`, `PINPOINT_*`, `PATH_*`) so FTC Dashboard shows related tunables together in its flat field list
+- Prefer Java boolean naming with `is` / `has` / `should` prefixes for boolean variables and fields (for example, `isFieldCentric`, `isRedAlliance`)
 
 **Autonomous config scaling rule-of-thumb:**
 - Keep `AutoConfig` for shared autonomous values used across multiple routes (global timing margins, common defaults, shared tolerances).

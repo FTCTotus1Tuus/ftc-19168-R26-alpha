@@ -60,6 +60,7 @@ Remove `@Disabled` to make an OpMode appear on the Driver Station:
 - Keep dashboard-tunable constants in `v1/config/*Config.java`, not in subsystem/service classes.
 - Use uppercase `<GROUP>_*` prefixes for dashboard fields (for example, `TELEOP_*`, `PINPOINT_*`, `PATH_*`) so related values stay grouped in FTC Dashboard's flat field list.
 - Keep one config class per concern; if a new feature has many tunables, create a dedicated `*Config` class.
+- Prefer Java boolean naming with `is` / `has` / `should` prefixes for boolean variables and fields (for example, `isFieldCentric`, `isRedAlliance`).
 - For full rationale and examples, follow `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md` §7 and §14.1.
 
 ## Commit Message Output Convention
