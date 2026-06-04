@@ -28,6 +28,24 @@ public final class DriveConfig {
     public static double TELEOP_DRIVE_DEADZONE = 0.1;
 
     /**
+     * Selects alliance for field-centric heading offset.
+     * true = RED, false = BLUE.
+     */
+    public static boolean TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = true;
+
+    /**
+     * Field-centric heading offset applied on RED alliance (radians).
+     * Keep at 0.0 if your field frame already aligns with your preferred RED controls.
+     */
+    public static double TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD = 0.0;
+
+    /**
+     * Field-centric heading offset applied on BLUE alliance (radians).
+     * Set to Math.PI if BLUE should be flipped 180 degrees from RED controls.
+     */
+    public static double TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD = Math.PI;
+
+    /**
      * Minimum speed multiplier applied when right_trigger is fully depressed.
      * 0.3 = 30% of normal speed at full trigger; blends linearly back to 1.0 at rest.
      * Tune this to whatever feels comfortable for fine scoring maneuvers.
@@ -43,4 +61,3 @@ public final class DriveConfig {
      */
     public static double GEAR_COMP_FRONT_WHEEL_MAX_RPM_FRACTION = 0.75;
 }
-

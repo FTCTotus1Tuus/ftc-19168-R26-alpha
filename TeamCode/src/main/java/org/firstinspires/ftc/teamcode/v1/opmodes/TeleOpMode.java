@@ -14,6 +14,10 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 @TeleOp(name = "V1 TeleOp", group = "v1")
 public class TeleOpMode extends RobotOpMode {
 
+    // Field-centric mode toggle state and edge detection for gamepad1.back.
+    private boolean isFieldCentric = false;
+    private boolean prevBackPressed = false;
+
     @Override
     public void runOpMode() throws InterruptedException {
         initRobot();
@@ -36,6 +40,13 @@ public class TeleOpMode extends RobotOpMode {
             // 1. Clear bulk cache — must be the very first call in the loop.
             robot.hardware.clearBulkCache();
 
+            // 1.5 Toggle field-centric on rising edge of back button.
+            boolean backPressed = gamepad1.back;
+            if (backPressed && !prevBackPressed) {
+                isFieldCentric = !isFieldCentric;
+            }
+            prevBackPressed = backPressed;
+
             // 2. Read input and drive.
             applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
@@ -48,14 +59,29 @@ public class TeleOpMode extends RobotOpMode {
                     DriveConfig.TELEOP_SPEED_SCALE_TURN,
                     DriveConfig.TELEOP_ROTATION_SCALE,
                     DriveConfig.TELEOP_PRECISION_SCALE,
+                    DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE,
+                    DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD,
+                    DriveConfig.TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD,
+                    isFieldCentric,
+                    robot.drive.getPose(),
                     false // TODO: wire this up when AutoParking is built
             );
 
             // 3. Telemetry.
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
-                    : String.format("(%.2f, %.2f) %.2f\u00b0", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+                    : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
+            double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
+                    ? DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD
+                    : DriveConfig.TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD;
+            telemetry.addData(
+                    "Field-Centric",
+                    "%s | Alliance=%s | Offset=%.0f deg",
+                    isFieldCentric ? "ON (gamepad1.back to toggle)" : "OFF (robot-centric)",
+                    DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE ? "RED" : "BLUE",
+                    Math.toDegrees(allianceOffsetRad)
+            );
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
@@ -83,6 +109,11 @@ public class TeleOpMode extends RobotOpMode {
             double speedScaleTurn,
             double rotationScale,
             double precisionScale,
+            boolean isRedAlliance,
+            double redAllianceOffsetRad,
+            double blueAllianceOffsetRad,
+            boolean isFieldCentric,
+            Pose robotPose,
             boolean isAutoParking
     ) {
         if (isAutoParking) {
@@ -122,9 +153,23 @@ public class TeleOpMode extends RobotOpMode {
         // At trigger = 1.0 → multiplier = precisionScale (e.g. 30% speed).
         double precisionMultiplier = 1.0 - rightTrigger * (1.0 - precisionScale);
 
+        // Field-centric driving: rotate the translation input by the robot's current heading
+        // so that stick-up always moves forward relative to the field, not the robot.
+        // Turn (shapedR) stays absolute — always rotates the robot itself.
+        double commandX = shapedX;
+        double commandY = shapedY;
+        if (isFieldCentric && robotPose != null) {
+            double allianceOffsetRad = isRedAlliance ? redAllianceOffsetRad : blueAllianceOffsetRad;
+            double heading = robotPose.getHeading() + allianceOffsetRad;
+            // Rotate input (commandX, commandY) into the robot frame using Pedro heading convention.
+            // This keeps stick-up consistently "away from drivers" even when the robot is sideways.
+            commandX = shapedX * Math.cos(heading) - shapedY * Math.sin(heading);
+            commandY = shapedX * Math.sin(heading) + shapedY * Math.cos(heading);
+        }
+
         robot.drive.setTeleOpDrive(
-                shapedY * driveScale * precisionMultiplier,
-                shapedX * driveScale * precisionMultiplier,
+                commandY * driveScale * precisionMultiplier,
+                commandX * driveScale * precisionMultiplier,
                 shapedR * rotationScale * precisionMultiplier
         );
     }
