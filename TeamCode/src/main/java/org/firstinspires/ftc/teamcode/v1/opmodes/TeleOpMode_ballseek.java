@@ -7,6 +7,7 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.v1.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
+
 /**
  * TeleOpMode — driver-control OpMode.
  * Reads gamepad input and delegates to subsystems via RobotContainer.
@@ -78,7 +79,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     isFieldCentric,
                     robot.drive.getPose(),
                     false // TODO: wire this up when AutoParking is built
-            );
+                );
+                robot.intake.stop();
             } else {
                 //3. Ball seeking
                 VisionService.BallTarget target = robot.vision.getBallTarget();
@@ -105,6 +107,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                             0.0,
                             VisionConfig.BALL_SEEK_FORWARD_MAX
                     );
+
+                    //todo: add grabbing
+                    robot.intake.start();
 
                     // If centered and close enough, stop
                     if (Math.abs(target.normalizedXError) <= VisionConfig.BALL_CENTER_TOLERANCE
