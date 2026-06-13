@@ -115,8 +115,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
                 }
 
-                //robot.drive.setTeleOpDrive(forward, 0.0, turn);//disabled to read the telemetry values without robot moving
-                robot.drive.setTeleOpDrive(0, 0.0, 0);//re-enable when ready to test ball seeking
+                robot.drive.setTeleOpDrive(-forward, 0.0, turn);//disabled to read the telemetry values without robot moving
+                //robot.drive.setTeleOpDrive(0, 0.0, 0);//re-enable when ready to test ball seeking
 
                 telemetry.addData("Ball Visible", target.isVisible);
                 telemetry.addData("Ball X Err", "%.3f", target.normalizedXError);
