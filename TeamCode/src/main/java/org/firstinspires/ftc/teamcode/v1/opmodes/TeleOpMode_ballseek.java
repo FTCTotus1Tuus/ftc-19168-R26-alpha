@@ -22,7 +22,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private boolean isFieldCentric = false;
     private boolean prevBackPressed = false;
     private boolean isSeekMode = false;
+
     private boolean prevAButtonPressed = false;
+
+
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -60,75 +63,79 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             }
             prevAButtonPressed = aPressed;
 
+
+
             // 2. Read input and drive.
-            if (!isSeekMode) {
-                applyTeleOpDrive(
-                    gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
-                    gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
-                    gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
-                    gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
-                    DriveConfig.TELEOP_DRIVE_DEADZONE,
-                    DriveConfig.TELEOP_INPUT_EXPONENT,
-                    DriveConfig.TELEOP_SPEED_SCALE,
-                    DriveConfig.TELEOP_SPEED_SCALE_TURN,
-                    DriveConfig.TELEOP_ROTATION_SCALE,
-                    DriveConfig.TELEOP_PRECISION_SCALE,
-                    DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE,
-                    DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD,
-                    DriveConfig.TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD,
-                    isFieldCentric,
-                    robot.drive.getPose(),
-                    false // TODO: wire this up when AutoParking is built
-                );
-                robot.intake.stop();
+
+            //3. Always do Ball scanning
+            VisionService.BallTarget target = robot.vision.getBallTarget();
+
+            double forward;
+            double turn;
+
+            if (!target.isVisible) {
+                // Target lost: slow scan in place
+                forward = 0.0;
+                turn = VisionConfig.BALL_SEARCH_TURN;
             } else {
-                //3. Ball seeking
-                VisionService.BallTarget target = robot.vision.getBallTarget();
+                // Steering: proportional to horizontal error
+                turn = Range.clip(
+                        target.normalizedXError * VisionConfig.BALL_SEEK_TURN_KP,
+                        -VisionConfig.BALL_SEEK_TURN_MAX,
+                        VisionConfig.BALL_SEEK_TURN_MAX
+                );
 
-                double forward;
-                double turn;
+                // Approach: slow down as ball appears larger
+                double radiusError = VisionConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
+                forward = Range.clip(
+                        radiusError * VisionConfig.BALL_SEEK_FORWARD_KP,
+                        0.0,
+                        VisionConfig.BALL_SEEK_FORWARD_MAX
+                );
 
-                if (!target.isVisible) {
-                    // Target lost: slow scan in place
-                    forward = 0.0;
-                    turn = VisionConfig.BALL_SEARCH_TURN;
-                } else {
-                    // Steering: proportional to horizontal error
-                    turn = Range.clip(
-                            target.normalizedXError * VisionConfig.BALL_SEEK_TURN_KP,
-                            -VisionConfig.BALL_SEEK_TURN_MAX,
-                            VisionConfig.BALL_SEEK_TURN_MAX
-                    );
 
-                    // Approach: slow down as ball appears larger
-                    double radiusError = VisionConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
-                    forward = Range.clip(
-                            radiusError * VisionConfig.BALL_SEEK_FORWARD_KP,
-                            0.0,
-                            VisionConfig.BALL_SEEK_FORWARD_MAX
-                    );
-
-                    //todo: add grabbing
-                    robot.intake.start();
-
-                    // If centered and close enough, stop
-                    if (Math.abs(target.normalizedXError) <= VisionConfig.BALL_CENTER_TOLERANCE
-                            && target.radiusPx >= VisionConfig.BALL_TARGET_RADIUS_PX) {
-                        forward = 0.0;
-                        turn = 0.0;
-                    }
-
+                // If centered and close enough, stop
+                if (target.radiusPx >= VisionConfig.BALL_TARGET_RADIUS_PX) {
+                    forward = 0.1;
+                }
+                if (Math.abs(target.normalizedXError) <= VisionConfig.BALL_CENTER_TOLERANCE) {
+                    turn = 0.0;
                 }
 
-                robot.drive.setTeleOpDrive(-forward, 0.0, turn);//disabled to read the telemetry values without robot moving
-                //robot.drive.setTeleOpDrive(0, 0.0, 0);//re-enable when ready to test ball seeking
-
-                telemetry.addData("Ball Visible", target.isVisible);
-                telemetry.addData("Ball X Err", "%.3f", target.normalizedXError);
-                telemetry.addData("Ball Radius", "%.1f px", target.radiusPx);
-                telemetry.addData("Circularity", "%.3f", target.circularity);
-                telemetry.addData("Circle Center X-Y", "(%.1f, %.1f)", target.circleFitX, target.circleFitY);
             }
+            if (!isSeekMode)  {
+                applyTeleOpDrive(
+                        gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
+                        gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
+                        gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
+                        gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
+                        DriveConfig.TELEOP_DRIVE_DEADZONE,
+                        DriveConfig.TELEOP_INPUT_EXPONENT,
+                        DriveConfig.TELEOP_SPEED_SCALE,
+                        DriveConfig.TELEOP_SPEED_SCALE_TURN,
+                        DriveConfig.TELEOP_ROTATION_SCALE,
+                        DriveConfig.TELEOP_PRECISION_SCALE,
+                        DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE,
+                        DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD,
+                        DriveConfig.TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD,
+                        isFieldCentric,
+                        robot.drive.getPose(),
+                        false // TODO: wire this up when AutoParking is built
+                );
+                robot.intake.stop();
+            }
+            else {
+                robot.drive.setTeleOpDrive(-forward, 0.0, turn);//disabled to read the telemetry values without robot moving
+                robot.intake.start();
+                //robot.drive.setTeleOpDrive(0, 0.0, 0);//re-enable when ready to test ball seeking
+            }
+
+            telemetry.addData("Ball Visible", target.isVisible);
+            telemetry.addData("Ball X Err", "%.3f", target.normalizedXError);
+            telemetry.addData("Ball Radius", "%.1f px", target.radiusPx);
+            telemetry.addData("Circularity", "%.3f", target.circularity);
+            telemetry.addData("Circle Center X-Y", "(%.1f, %.1f)", target.circleFitX, target.circleFitY);
+
 
 
             // 99. Telemetry.
