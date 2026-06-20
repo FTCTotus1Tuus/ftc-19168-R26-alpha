@@ -25,6 +25,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
     private boolean prevAButtonPressed = false;
 
+    private enum IntakeStates {OFF, IN, OUT};
+
+    private IntakeStates intakeState = IntakeStates.OFF;
+    private boolean prevLeftBumperPressed = false;
+
+
+
 
 
     @Override
@@ -60,9 +67,24 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             boolean aPressed = gamepad1.a;
             if (aPressed && !prevAButtonPressed) {
                 isSeekMode = !isSeekMode;
+                if (isSeekMode) {
+                    intakeState = IntakeStates.IN;
+                }else {
+                    intakeState = IntakeStates.OFF;
+                }
+
             }
             prevAButtonPressed = aPressed;
 
+            if (gamepad1.left_bumper) {
+                if (intakeState == IntakeStates.OFF) {
+                    intakeState = IntakeStates.IN;
+
+                } else if (intakeState == IntakeStates.IN) {
+                    intakeState = IntakeStates.OFF;
+
+                }
+            }
 
 
             // 2. Read input and drive.
@@ -122,7 +144,12 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         robot.drive.getPose(),
                         false // TODO: wire this up when AutoParking is built
                 );
-                robot.intake.stop();
+                if (intakeState == IntakeStates.OFF) {
+                    robot.intake.stop();
+                } else if (intakeState == IntakeStates.IN) {
+                    robot.intake.start();
+                }
+
             }
             else {
                 robot.drive.setTeleOpDrive(-forward, 0.0, turn);//disabled to read the telemetry values without robot moving
