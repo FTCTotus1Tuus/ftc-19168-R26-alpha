@@ -7,7 +7,7 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
-import org.firstinspires.ftc.teamcode.v1.config.VisionConfig;
+import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
 /**
@@ -116,26 +116,26 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 prevBallWasVisible = true;
                 // Steering: proportional to horizontal error
                 turn = Range.clip(
-                        target.normalizedXError * VisionConfig.BALL_SEEK_TURN_KP,
-                        -VisionConfig.BALL_SEEK_TURN_MAX,
-                        VisionConfig.BALL_SEEK_TURN_MAX
+                        target.normalizedXError * TeleOpMode_ballseekConfig.BALL_SEEK_TURN_KP,
+                        -TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX,
+                        TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX
                 );
 
                 // Approach: slow down as ball appears larger
-                double radiusError = VisionConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
+                double radiusError = TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
                 forward = Range.clip(
-                        radiusError * VisionConfig.BALL_SEEK_FORWARD_KP,
+                        radiusError * TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_KP,
                         0.0,
-                        VisionConfig.BALL_SEEK_FORWARD_MAX
+                        TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX
                 );
 
 
                 // If centered and close enough, stop
-                if (target.radiusPx >= VisionConfig.BALL_TARGET_RADIUS_PX) {
-                    forward = VisionConfig.BALL_SEEK_FORWARD_MAX;
+                if (target.radiusPx >= TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX) {
+                    forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
                     prevBallWasClose = true;
                 }
-                if (Math.abs(target.normalizedXError) <= VisionConfig.BALL_CENTER_TOLERANCE) {
+                if (Math.abs(target.normalizedXError) <= TeleOpMode_ballseekConfig.BALL_CENTER_TOLERANCE) {
                     turn = 0.0;
                     prevBallWasCentered = true;
                 }
@@ -145,25 +145,25 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
 
 
-            } else if (ballVisibleTimer.time() > VisionConfig.BALL_VISIBLE_SEC) {
+            } else if (ballVisibleTimer.time() > TeleOpMode_ballseekConfig.BALL_VISIBLE_SEC) {
                 prevBallWasVisible = false;
                 prevBallWasCentered = false;
                 prevBallWasClose = false;
                 // Target lost: slow scan in place
                 forward = 0.0;
                 if (Math.signum(turn) == 0) {
-                    turn = VisionConfig.BALL_SEARCH_TURN;
+                    turn = TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
                 } else {
-                    turn = Math.signum(turn) * VisionConfig.BALL_SEARCH_TURN;
+                    turn = Math.signum(turn) * TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
                 }
             }
 
             if (autoForwardMode) {
                 // Stop rotating and move forward for as long as timer commands
-                if (autoForwardTimer.time() >= VisionConfig.BALL_TIMER_SEC) {
+                if (autoForwardTimer.time() >= TeleOpMode_ballseekConfig.BALL_TIMER_SEC) {
                     autoForwardMode = false;
                 } else {
-                    forward = VisionConfig.BALL_SEEK_FORWARD_MAX;
+                    forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
                     turn = 0.0;
                 }
             }
