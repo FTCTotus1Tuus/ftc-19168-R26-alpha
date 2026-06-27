@@ -224,6 +224,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addData("Close", prevBallWasClose);
             telemetry.addData("AutoForward", autoForwardMode);
             telemetry.addData("AutoForward Timer", autoForwardTimer.time());
+            telemetry.addData("Ball Visible Timer", ballVisibleTimer.time());
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
