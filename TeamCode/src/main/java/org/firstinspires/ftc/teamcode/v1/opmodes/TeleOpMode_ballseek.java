@@ -109,10 +109,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             VisionService.BallTarget target = robot.vision.getBallTarget();
 
 
+            // time based movement when ball ready (visible, centered, and close)
 
-           // time based movement when ball ready (visible, centered, and close)
-
-             if (target.isVisible) {
+            if (target.isVisible) {
                 ballVisibleTimer.reset();
                 prevBallWasVisible = true;
                 // Steering: proportional to horizontal error
@@ -146,14 +145,18 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
 
 
-             } else if (ballVisibleTimer.time() > VisionConfig.BALL_VISIBLE_SEC) {
+            } else if (ballVisibleTimer.time() > VisionConfig.BALL_VISIBLE_SEC) {
                 prevBallWasVisible = false;
                 prevBallWasCentered = false;
                 prevBallWasClose = false;
                 // Target lost: slow scan in place
                 forward = 0.0;
-                turn = VisionConfig.BALL_SEARCH_TURN;
-             }
+                if (Math.signum(turn) == 0) {
+                    turn = VisionConfig.BALL_SEARCH_TURN;
+                } else {
+                    turn = Math.signum(turn) * VisionConfig.BALL_SEARCH_TURN;
+                }
+            }
 
             if (autoForwardMode) {
                 // Stop rotating and move forward for as long as timer commands
