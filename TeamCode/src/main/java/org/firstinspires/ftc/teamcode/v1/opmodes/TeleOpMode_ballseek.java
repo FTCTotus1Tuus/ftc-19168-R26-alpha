@@ -4,6 +4,8 @@ import com.pedropathing.geometry.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
+
+import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.v1.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
@@ -30,8 +32,19 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private IntakeStates intakeState = IntakeStates.OFF;
     private boolean prevLeftBumperPressed = false;
 
+    private boolean prevBallWasCentered = false;
 
+    private boolean prevBallWasVisible = false;
 
+    private boolean prevBallWasClose = false;
+
+    private boolean autoForwardMode = false;
+
+    private ElapsedTime autoForwardTimer;
+    private ElapsedTime ballVisibleTimer;
+
+    private double forward = 0;
+    private double turn = 0;
 
 
     @Override
@@ -44,6 +57,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addLine("Drive unavailable — check motor config and re-init.");
         }
         telemetry.update();
+        autoForwardTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+        ballVisibleTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+        // todo: init timer to 1 second
 
         waitForStart();
         if (isStopRequested()) {
@@ -92,14 +108,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             //3. Always do Ball scanning
             VisionService.BallTarget target = robot.vision.getBallTarget();
 
-            double forward;
-            double turn;
 
-            if (!target.isVisible) {
-                // Target lost: slow scan in place
-                forward = 0.0;
-                turn = VisionConfig.BALL_SEARCH_TURN;
-            } else {
+
+           // time based movement when ball ready (visible, centered, and close)
+
+             if (target.isVisible) {
+                ballVisibleTimer.reset();
+                prevBallWasVisible = true;
                 // Steering: proportional to horizontal error
                 turn = Range.clip(
                         target.normalizedXError * VisionConfig.BALL_SEEK_TURN_KP,
@@ -118,13 +133,38 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
                 // If centered and close enough, stop
                 if (target.radiusPx >= VisionConfig.BALL_TARGET_RADIUS_PX) {
-                    forward = 0.1;
+                    forward = VisionConfig.BALL_SEEK_FORWARD_MAX;
+                    prevBallWasClose = true;
                 }
                 if (Math.abs(target.normalizedXError) <= VisionConfig.BALL_CENTER_TOLERANCE) {
                     turn = 0.0;
+                    prevBallWasCentered = true;
+                }
+                if (prevBallWasClose && prevBallWasCentered) {
+                    autoForwardMode = true;
+                    autoForwardTimer.reset();
                 }
 
+
+             } else if (ballVisibleTimer.time() > VisionConfig.BALL_VISIBLE_SEC) {
+                prevBallWasVisible = false;
+                prevBallWasCentered = false;
+                prevBallWasClose = false;
+                // Target lost: slow scan in place
+                forward = 0.0;
+                turn = VisionConfig.BALL_SEARCH_TURN;
+             }
+
+            if (autoForwardMode) {
+                // Stop rotating and move forward for as long as timer commands
+                if (autoForwardTimer.time() >= VisionConfig.BALL_TIMER_SEC) {
+                    autoForwardMode = false;
+                } else {
+                    forward = VisionConfig.BALL_SEEK_FORWARD_MAX;
+                    turn = 0.0;
+                }
             }
+
             if (!isSeekMode)  {
                 applyTeleOpDrive(
                         gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
@@ -180,6 +220,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE ? "RED" : "BLUE",
                     Math.toDegrees(allianceOffsetRad)
             );
+            telemetry.addData("Centered", prevBallWasCentered);
+            telemetry.addData("Close", prevBallWasClose);
+            telemetry.addData("AutoForward", autoForwardMode);
+            telemetry.addData("AutoForward Timer", autoForwardTimer.time());
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());

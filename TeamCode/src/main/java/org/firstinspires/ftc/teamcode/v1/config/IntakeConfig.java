@@ -4,6 +4,6 @@ import com.acmerobotics.dashboard.config.Config;
 
 @Config
 public class IntakeConfig {
-    public static double INTAKE_POWER = 0.5;
+    public static double INTAKE_POWER = 0.3;
 
 }
