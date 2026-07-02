@@ -31,5 +31,13 @@ public final class VisionConfig {
     public static double DETECTION_TIMEOUT_S = 0.5;
 
     // TODO: add season-specific vision thresholds (e.g., confidence gates, ROI limits).
-}
+// Ball detection + seek tuning
+    public static double BALL_MIN_CONTOUR_AREA_PX = 20; //was 150
+    public static double BALL_MAX_CONTOUR_AREA_PX = 20000;
+    public static double BALL_MIN_CIRCULARITY = 0.3;
 
+    public static int BALL_CAMERA_WIDTH_PX = 320;
+
+
+
+}

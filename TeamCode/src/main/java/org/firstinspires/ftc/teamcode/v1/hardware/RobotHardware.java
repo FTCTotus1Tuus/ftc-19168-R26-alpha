@@ -26,6 +26,7 @@ public class RobotHardware {
     private DcMotorEx leftFrontMotor;
     private GoBildaPinpointDriver pinpoint;
     private WebcamName webcam;
+    private DcMotorEx intakeFront;
 
     /**
      * Maps all hardware devices and enables manual bulk caching on every REV hub.
@@ -70,6 +71,8 @@ public class RobotHardware {
         // Example:
         //   liftMotor = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.LIFT_MOTOR);
         //   liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+           intakeFront = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.INTAKE_FRONT);
+           intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
     }
 
     /**
@@ -131,6 +134,7 @@ public class RobotHardware {
     public WebcamName getWebcam() {
         return webcam;
     }
+    public DcMotorEx getIntakeFront() {return intakeFront;}
 }
 
 

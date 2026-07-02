@@ -9,6 +9,7 @@ import org.firstinspires.ftc.teamcode.v1.services.PreferencesService;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.v1.subsystems.DriveSubsystem;
+import org.firstinspires.ftc.teamcode.v1.subsystems.IntakeSubsystem;
 
 /**
  * RobotContainer — single composition root for all subsystems and services.
@@ -25,6 +26,7 @@ public class RobotContainer {
 
     public final RobotHardware hardware;
     public final DriveSubsystem drive;
+    public final IntakeSubsystem intake;
     public final LocalizationService localization;
     public final VisionService vision;
     public final PreferencesService preferences;
@@ -53,6 +55,8 @@ public class RobotContainer {
 
         // Season subsystems:
         //   lift = new LiftSubsystem(hardwareMap);
+        intake   = new IntakeSubsystem(hardwareMap, hardware);
+
     }
 
     /**
@@ -83,6 +87,7 @@ public class RobotContainer {
 
         // 5. Season subsystems:
         //   lift.initialize();
+        intake.initialize();
     }
 
     /**
@@ -97,6 +102,7 @@ public class RobotContainer {
         vision.stop();
         localization.stop();
         drive.stop();
+        intake.stop();
         hardware.stop();
     }
 }
