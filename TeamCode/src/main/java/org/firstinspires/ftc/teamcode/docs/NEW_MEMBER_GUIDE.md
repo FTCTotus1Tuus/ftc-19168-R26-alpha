@@ -1,322 +1,302 @@
 # New Member Guide — FTC 19168 Robot Code
 
-**Brand new? Read [START_HERE.md](START_HERE.md) first** — it's 10 minutes and
-assumes nothing. Come back here once it makes sense.
+**Read [START_HERE.md](START_HERE.md) first.** It's 15 minutes and explains the
+big ideas: the loop, the kitchen, pressed-vs-held, and how the ball chase works.
 
-This doc is step two. It explains how our robot code is organized and how to
-make your first change. It assumes you know a little Java (variables, `if`,
-methods, classes) and nothing about FTC.
-
-When you're comfortable here, read `ROBOT_ARCHITECTURE_GUIDE.md` — that's the
-deep version with all the rules and rationale. This doc is the tour.
+This doc is step two: **the guided tour of the actual code.** Same ideas, but now
+with real file names, so that when you open the project, you know what you're
+looking at. When you're comfortable here, `ROBOT_ARCHITECTURE_GUIDE.md` has the
+full rules.
 
 ---
 
-## 1. The one-paragraph version
+## 1. The robot in one paragraph
 
-Our robot is a **mecanum drive** (4 wheels that let it slide sideways) with an
-**intake** (spinning rubber bands that suck balls in), a **webcam**, and an
-**odometry sensor** that tracks where the robot is on the field. The code is
-split so that *one class talks to the hardware*, *each mechanism gets its own
-class*, and *the driver-facing programs (OpModes) just give orders*. Nobody
-reaches around anybody else.
+Four wheels that can slide sideways, a spinning-rubber-band intake that pulls
+balls in, a camera that spots purple balls, and a sensor that tracks where the
+robot is on the field. The code is organized so that one class talks to the
+hardware, each mechanism gets its own class, and the programs the drivers run
+just give orders. Nobody reaches around anybody else.
 
 ---
 
-## 2. What an OpMode is
+## 2. OpModes — the programs you actually run
 
-In FTC, the code you actually run on the robot is called an **OpMode**. Two kinds:
+An **OpMode** is one runnable robot program. The Driver Station tablet shows a
+menu of them; the drivers pick one and run it. Two kinds:
 
-| Kind | Annotation | When it runs | How long |
-|---|---|---|---|
-| Autonomous | `@Autonomous` | first 30 seconds | robot drives itself |
-| TeleOp | `@TeleOp` | rest of the match | humans drive with gamepads |
+| | Annotation in code | When |
+|---|---|---|
+| Autonomous | `@Autonomous` | first 30 seconds — robot is on its own |
+| TeleOp | `@TeleOp` | rest of the match — humans drive |
 
-An OpMode has two phases:
+Every OpMode has the same life story:
 
 ```java
-// everything before waitForStart() runs when you press INIT on the Driver Station
-waitForStart();          // code pauses here until the driver presses PLAY
+// 1. Everything up here runs when the driver presses INIT — set things up
+waitForStart();          // 2. ...then the code stands at this line, waiting
 while (opModeIsActive()) {
-    // this loop runs ~50 times per second until the match ends or STOP is pressed
+    // 3. Driver pressed PLAY — this loop now runs ~50 times a second
 }
+// 4. Match over or STOP pressed — clean up
 ```
 
-**That loop is the single most important idea in FTC.** Your code does not
-"drive forward 3 feet" as one instruction. It runs the loop body over and over,
-and each pass it looks at the current situation and sets motor powers *for right
-now*. Driving forward 3 feet means "keep setting forward power until the sensors
-say we've gone 3 feet."
+That loop is the cruise-control idea from START_HERE: each pass answers
+*"what power should each motor get, right now?"* — and nothing else.
 
-Our OpModes live in [`v1/opmodes/`](../v1/opmodes/). Start with
-[TeleOpMode.java](../v1/opmodes/TeleOpMode.java) — it's the simplest complete one.
+Ours live in [`v1/opmodes/`](../v1/opmodes/). The simplest complete one is
+[TeleOpMode.java](../v1/opmodes/TeleOpMode.java) — start there.
 
 ---
 
-## 3. The layers (why there are so many folders)
+## 3. The folders, and the one rule
 
-Everything lives under `teamcode/v1/`. The `v1` means "version 1 of this
-season's code" — if we ever want to rewrite from scratch we make `v2/` and keep
-`v1/` working. Inside:
+START_HERE gave you the kitchen. Here's the same kitchen with real names:
 
-```
-v1/
-├── opmodes/      ← the programs you run. Read gamepads, give orders.
-├── core/         ← RobotContainer: builds the whole robot, one object.
-├── subsystems/   ← one class per mechanism (DriveSubsystem, IntakeSubsystem).
-├── services/     ← helpers that aren't mechanisms (VisionService, odometry, saved settings).
-├── hardware/     ← the ONLY place allowed to ask the Driver Station for a motor.
-├── config/       ← plain numbers you tune. No logic, just constants.
-└── testing/      ← tuning + diagnostic OpModes. Not used in matches.
-```
+| Kitchen | Folder | What's inside |
+|---|---|---|
+| The waiter | `opmodes/` | reads gamepads, gives orders, never cooks |
+| The cooks | `subsystems/` | `DriveSubsystem`, `IntakeSubsystem` — one job each |
+| The pantry | `hardware/` | `RobotHardware` — the only class allowed to touch motors |
+| The recipe card | `config/` | every tunable number, no logic |
+| The specialists | `services/` | camera (`VisionService`), position tracking, saved settings |
 
-The rule that makes this work:
+The rule that makes it work:
 
-> **An OpMode never touches a motor directly.** It calls a subsystem.
-> **A subsystem never looks up hardware itself.** It asks `RobotHardware`.
-> **Nobody hardcodes a number.** Numbers live in `config/`.
+> An OpMode never touches a motor. It calls a cook.
+> A cook never hunts for hardware. It asks the pantry.
+> Nobody memorizes a number. Numbers live on the recipe card.
 
-Why bother? Because when the intake motor gets rewired to a different port, you
-change **one line** in [RobotHardwareNames.java](../v1/hardware/RobotHardwareNames.java)
+**Why?** When the intake motor gets rewired to a different port, you change one
+word in [RobotHardwareNames.java](../v1/hardware/RobotHardwareNames.java) —
 instead of hunting through five files.
 
-### `RobotContainer` — the robot in one object
-
-[core/RobotContainer.java](../v1/core/RobotContainer.java) builds every subsystem
-once and hands them out as public fields. Every OpMode extends
-[RobotOpMode](../v1/opmodes/RobotOpMode.java), which gives you a field called
-`robot`. So from any OpMode you can write:
+**How an OpMode reaches everything:** every OpMode gets one object called
+`robot` that holds the whole kitchen. So the code you write looks like:
 
 ```java
-robot.drive.setTeleOpDrive(forward, strafe, turn);
-robot.intake.start();
-robot.vision.getBallTarget();
+robot.drive.setTeleOpDrive(forward, strafe, turn);   // tell the drive cook
+robot.intake.start();                                 // tell the intake cook
+robot.vision.getBallTarget();                         // ask the camera
 ```
 
-That's the whole API you need to know to start.
+That's honestly most of the API you need for months.
 
 ---
 
-## 4. Our actual hardware
+## 4. Our hardware — seven things
 
-Seven devices total. Names on the left are what you must type into the **robot
-configuration on the Driver Station phone** — they have to match exactly, or the
-robot won't init.
+The names below are typed into the **robot configuration on the Driver Station**
+by hand. Code and tablet must match *exactly* — one wrong letter and that device
+isn't found. (What happens then is a good story — see section 8.)
 
 | Config name | What it is |
 |---|---|
-| `leftFront`, `leftRear`, `rightFront`, `rightRear` | the 4 mecanum drive motors |
+| `leftFront`, `leftRear`, `rightFront`, `rightRear` | the 4 drive motors |
 | `rubberBands` | the intake motor |
-| `pinpoint` | goBILDA Pinpoint — tracks robot position on the field |
-| `Webcam 1` | the camera used to find balls |
+| `pinpoint` | the position sensor (odometry) |
+| `Webcam 1` | the camera |
 
-No servos yet. Source of truth: [RobotHardwareNames.java](../v1/hardware/RobotHardwareNames.java).
-
----
-
-## 5. Follow one button press all the way through
-
-This is the best way to learn the codebase. Driver pushes the left stick forward
-in [TeleOpMode.java](../v1/opmodes/TeleOpMode.java):
-
-1. **Read it.** `gamepad1.left_stick_y` → a number from -1 to +1.
-   (Heads up: the SDK reports **negative** when you push *up*. Everyone trips on this once.)
-2. **Clean it up.** `applyTeleOpDrive(...)` runs the stick through four filters:
-   - **Deadzone** — sticks don't rest perfectly at 0, so ignore anything under 0.1.
-     We use a *circular* deadzone (`Math.hypot(x, y)`) so diagonals feel the same as straight pushes.
-   - **Exponential shaping** — `power³`. Small stick movements become *much* smaller
-     output, so the driver gets fine control near center but still reaches 100% at full push.
-   - **Precision mode** — holding `right_trigger` blends speed down to 30%.
-   - **Field-centric** (toggle with `back`) — rotates your stick direction by the robot's
-     heading, so "stick up" always means "away from the drivers" even if the robot is
-     spun sideways. This is the `cos`/`sin` block.
-3. **Send it.** `robot.drive.setTeleOpDrive(y, x, turn)`.
-4. **Subsystem acts.** [DriveSubsystem](../v1/subsystems/DriveSubsystem.java) hands those
-   three numbers to **Pedro Pathing**, a library that does the mecanum math and sets the
-   four motor powers.
-
-Notice what the OpMode never did: it never named a motor.
+No servos yet. Source of truth:
+[RobotHardwareNames.java](../v1/hardware/RobotHardwareNames.java).
 
 ---
 
-## 6. The ball-seeking code (our newest feature)
+## 5. What happens when the driver pushes the stick
 
-[TeleOpMode_ballseek.java](../v1/opmodes/TeleOpMode_ballseek.java) is a normal
-TeleOp *plus* a mode where the robot finds a purple ball and drives to it by
-itself. Press **A** to toggle seek mode on and off.
+Best way to learn the codebase: follow one push of the left stick all the way
+through [TeleOpMode.java](../v1/opmodes/TeleOpMode.java). The stick gives us a
+number from −1 to +1 — and then it goes through four filters before any motor
+sees it. Each filter fixes a real problem:
 
-### Step 1 — seeing the ball
+**Filter 1 — the deadzone.** A gamepad stick never rests at exactly zero; it
+wobbles slightly, like a steering wheel with a little play in it. Without this
+filter the robot would creep across the floor on its own. So: any input smaller
+than 0.1, treat as zero.
 
-[VisionService.java](../v1/services/VisionService.java) runs a
-`ColorBlobLocatorProcessor` on the webcam. Every frame it:
+**Filter 2 — the gentle-start curve.** We cube the input (`power³`). Sounds odd,
+does something lovely: half-stick becomes 0.5³ = 0.13 — much gentler — while
+full stick is still 1.0³ = 1.0, full power. It's a gas pedal where the first
+inch is soft: fine control for lining up, full speed still there when you floor
+it.
 
-1. Finds all purple regions in the image (`ColorRange.ARTIFACT_PURPLE`).
-2. Throws out ones that are too small, too big, or not round enough
-   (thresholds in [VisionConfig.java](../v1/config/VisionConfig.java)).
-3. Reports what's left as a `BallTarget` with these fields:
+**Filter 3 — slow mode.** Hold the right trigger and everything scales down to
+30%. It blends — half-pressed trigger is half the slowdown. For precise moves
+near the scoring zone.
+
+**Filter 4 — field-centric (the fancy one).** Anyone who's driven an RC car
+knows: when the car drives toward you, left and right swap, and everyone
+crashes. Same with the robot. Field-centric fixes it — the robot knows which way
+it's facing (that's the `pinpoint` sensor), so "stick up" can always mean *away
+from the drivers*, no matter which way the robot is turned. The driver toggles
+it with the **back** button. There's some rotation math in the code
+(`Math.cos`/`Math.sin`) — you don't need to understand it, just what it's for.
+
+After the four filters, the OpMode hands three numbers to
+`robot.drive.setTeleOpDrive(...)` — forward, sideways, turn — and the
+[DriveSubsystem](../v1/subsystems/DriveSubsystem.java) passes them to a library
+called **Pedro Pathing** that does the wheel math.
+
+Notice what never happened: the OpMode never named a motor.
+
+**One gotcha everyone hits once:** the FTC SDK reports the stick as **negative
+when you push up**. Yes, really. You'll see minus signs handling it.
+
+---
+
+## 6. The ball chase, one level deeper
+
+START_HERE told the story. Here's where each piece lives.
+
+### The camera's report
+
+[VisionService.java](../v1/services/VisionService.java) looks for purple in
+every camera frame, throws out blobs that are too small / too big / not round
+enough, and reports the best one as a `BallTarget`:
 
 | Field | Meaning |
 |---|---|
 | `isVisible` | did we find a ball at all |
-| `normalizedXError` | **−1 = far left of frame, 0 = dead center, +1 = far right** |
-| `radiusPx` | how big it looks → a stand-in for how close it is |
-| `circularity` | how ball-shaped it is (1.0 = perfect circle) |
-
-The camera runs at only **320×240**. That's deliberate — it turned out to work
-better in dim gym lighting than a higher resolution.
+| `normalizedXError` | where it is: **−1 far left, 0 dead center, +1 far right** |
+| `radiusPx` | how big it looks — big means close |
+| `circularity` | how round it is (1.0 = perfect circle) |
 
 `normalizedXError` is the clever bit. Instead of "the ball is at pixel 214," we
-report "the ball is 34% of the way right of center." That number means the same
-thing no matter what resolution the camera runs at.
+say "the ball is 34% of the way to the right edge." A percentage means the same
+thing no matter what resolution the camera runs — it's the difference between
+"third house on the left" and "house number 214," when the street might get
+renumbered.
 
-### Step 2 — driving to it (proportional control)
+(The camera runs at only 320×240 on purpose — a teammate discovered low
+resolution actually sees the ball *better* in a dim gym.)
 
-This is the core idea, and it's two lines of real math:
+### The chase math
+
+Two lines in [TeleOpMode_ballseek.java](../v1/opmodes/TeleOpMode_ballseek.java),
+and they're the catching-up-to-a-friend idea from START_HERE:
 
 ```java
-turn    = normalizedXError * TURN_KP;                 // ball is right → turn right
-forward = (TARGET_RADIUS - radiusPx) * FORWARD_KP;    // ball looks small → drive forward
+turn    = normalizedXError * TURN_KP;                 // more off-center → turn harder
+forward = (TARGET_RADIUS - radiusPx) * FORWARD_KP;    // looks smaller → drive harder
 ```
 
-**Error × gain = response.** The further off you are, the harder you correct;
-as you get closer, you automatically ease off. That's a *proportional
-controller* (the P in PID), and it's most of what robot control is.
-
-`TURN_KP` and `FORWARD_KP` are the "how aggressive" knobs, in
+The `KP` numbers are the "how aggressive" knobs, and they live in
 [TeleOpMode_ballseekConfig.java](../v1/config/TeleOpMode_ballseekConfig.java).
-Too low and the robot creeps toward the ball forever; too high and it overshoots
-and wobbles back and forth. Tuning them is a great first job.
+Nobody calculated them — someone guessed, watched the robot, and adjusted until
+it looked right. **That's normal.** Numbers like these can't be computed; they
+depend on robot weight, floor grip, and battery. Both results also get capped
+(`Range.clip`) so the robot never lunges.
 
-Both outputs get `Range.clip(...)`'d to a max so the robot never lunges.
+### The four behaviors
 
-### Step 3 — the four behaviors
+Also from START_HERE — TRACK, HOLD, SEARCH, AUTO-FORWARD. The code for all four
+is in the same file, lines ~110–170. Worth finding each one; the file makes
+sense once you know the four moods exist.
 
-The robot is always in one of these. Read them in this order and the file makes sense:
+### One trick worth admiring: direction memory
 
-| Behavior | When | What it does |
-|---|---|---|
-| **TRACK** | ball visible | turn toward it + drive at it (the math above) |
-| **HOLD** | lost it < 0.5 s ago | *keep doing whatever it was doing* |
-| **SEARCH** | lost it > 0.5 s ago | stop, spin in place looking for one |
-| **AUTO&nbsp;FORWARD** | ball was centered AND close | ignore the camera, drive straight 2 s to scoop it |
-
-Two of these exist because of problems we hit on the field:
-
-- **HOLD** fixes *jitter*. Blob detection drops out for a single frame all the
-  time. Without HOLD, the robot would stutter between "chase" and "search"
-  several times a second. So when the ball vanishes we just don't change
-  anything for half a second and wait for it to come back.
-- **AUTO FORWARD** fixes the *last few inches*. When the robot gets close, the
-  ball slides out of the camera's view below the lens — the robot goes blind
-  exactly when it's about to succeed. So once we're centered and close, we stop
-  trusting the camera and commit to driving straight for a fixed time.
-
-And one small trick worth knowing — **direction memory**:
+When the ball slides off the *right* edge of the screen, which way should the
+robot search? Right, obviously — that's where it went. The code remembers this
+with one line:
 
 ```java
 turn = Math.signum(turn) * BALL_SEARCH_TURN;
 ```
 
-`signum` returns just the sign (+1 or −1). `turn` is a **field**, not a local
-variable, so it still holds the last steering command from when we could see the
-ball. If the ball drifted off the right edge, we were turning right, so we keep
-searching rightward. Before this, the robot would spin the wrong way and take
-a full rotation to find a ball that was six inches off-screen.
+`Math.signum` keeps only the sign of a number: `+0.24` becomes `+1`, `-0.3`
+becomes `-1`. And since `turn` is a whiteboard variable (it survives between
+passes), it still holds the *last* steering command from when the ball was
+visible. So the robot reads its own last move — "I was turning right" — and
+keeps searching that way. Before this line existed, the robot would sometimes
+spin the wrong direction and take a full circle to find a ball six inches
+off-screen.
 
 ---
 
-## 7. `config/` and live tuning
+## 7. Changing numbers without rebuilding
 
-Every file in [`v1/config/`](../v1/config/) is nothing but named numbers:
+Every file in [`v1/config/`](../v1/config/) is just named numbers. The
+`@Config` tag on those classes connects them to **FtcDashboard** — a webpage
+served by the robot itself. Laptop on the robot's WiFi, open:
 
-```java
-@Config
-public class DriveConfig {
-    public static double TELEOP_SPEED_SCALE = 1.0;
-    public static double TELEOP_PRECISION_SCALE = 0.3;
-}
+```
+192.168.43.1:8080/dash
 ```
 
-The `@Config` annotation is **FtcDashboard**. Connect a laptop to the robot's
-WiFi, open `192.168.43.1:8080/dash`, and you can change these numbers **while
-the robot is running** — no rebuild, no re-download. It also streams the camera
-feed, which is how you'd check whether the vision filter is actually finding the
-ball. This turns a 3-minute tuning cycle into a 3-second one, so use it.
+Every `@Config` number appears in a form. Edit one and it changes **inside the
+running robot, instantly** — no rebuild, no redeploy. It also shows the live
+camera feed with the vision circles drawn on it. This turns a 2-minute tuning
+cycle into a 2-second one; it's the most powerful tool you'll use.
 
-(Note: `TeleOpMode_ballseekConfig` is currently missing its `@Config` annotation,
-so it *doesn't* show up in the dashboard yet. Adding it would be a nice tiny PR.)
-
----
-
-## 8. Two things that will confuse you
-
-**Bulk caching.** The first line of every loop is:
-
-```java
-robot.hardware.clearBulkCache();
-```
-
-Reading a motor encoder takes ~2 ms over the wire. Read six sensors
-individually and you've burned 12 ms of a 20 ms loop. Bulk caching grabs
-*everything* in one transaction and serves the rest from memory. `clearBulkCache()`
-says "that snapshot is stale, take a fresh one." Forget it and your sensors
-silently return the same values forever. It must be **first**, every loop.
-
-**Nothing crashes on missing hardware.** If the webcam is unplugged,
-`VisionService` catches it, sets an error message, and the OpMode still runs —
-just without vision. Same for the drive. This is on purpose: a robot that runs
-in degraded mode can still finish a match. A robot that throws an exception at
-init is a forfeit. When you add a subsystem, follow the pattern — null-check and
-degrade, don't crash.
+**The trap everyone falls into once:** dashboard changes live only in the
+robot's memory. Restart the robot and they're gone. So: tune live → write the
+good number down → **type it into the config file and commit it.** Forget step
+three and tomorrow's robot mysteriously drives like last week's.
 
 ---
 
-## 9. Your first change
+## 8. Two house rules, and why
 
-1. **Get it building.** Open the repo in Android Studio, plug in a phone or Control
-   Hub, hit Run. Confirm "V1 TeleOp" shows up in the TeleOp list on the Driver Station.
-2. **Change a number.** Set `TELEOP_PRECISION_SCALE` to `0.15` in
-   [DriveConfig.java](../v1/config/DriveConfig.java). Drive with the trigger held.
-   Feel the difference. You just changed robot behavior.
-3. **Add telemetry.** Put a `telemetry.addData("My Value", something);` in a loop
-   and watch it on the Driver Station. This is how you debug — there's no
-   breakpoint debugger while the robot is driving.
-4. **Tune the ball seek.** Take `BALL_SEEK_TURN_KP` up and down and watch what
-   overshoot actually looks like.
-5. **Then write something new.** Ask a lead for a subsystem to own.
+**`clearBulkCache()` is the first line of every loop.** Grocery-run rule (see
+START_HERE): we fetch all sensor readings in one trip and reuse them for the
+rest of the pass. This line says "old trip's groceries are stale — go again."
+Forget it, and every sensor quietly reports the same frozen numbers forever.
 
-Rules for your first PR:
-- Numbers go in `config/`, never inline in an OpMode.
-- Hardware names go in `RobotHardwareNames`, never as a string literal in a subsystem.
-- Branch off `main`, open a PR, don't push to `main`.
+**Broken hardware must not crash the robot.** Unplug the camera and the robot
+still drives — `VisionService` notices, warns, and carries on. A robot missing
+one part can still play; a robot that crashes at INIT forfeits. When you add
+hardware, copy this pattern: check for null, degrade, don't die. (You'll find
+one spot in the code that *doesn't* follow this rule — the intake. Finding and
+fixing it is a classic first task. Ask.)
 
 ---
 
-## 10. Glossary
+## 9. Your first week
+
+1. **Build and deploy.** Open the project in Android Studio, get it onto the
+   robot, confirm **"V1 TeleOp"** appears on the Driver Station.
+2. **Change one number and feel it.** In
+   [DriveConfig.java](../v1/config/DriveConfig.java), change
+   `TELEOP_PRECISION_SCALE` from `0.3` to `0.15`. Drive with the trigger held —
+   slow mode is now twice as slow. You changed how the robot handles with one
+   number. (Put it back after.)
+3. **Print something.** Add `telemetry.addData("Hello", 123);` inside a loop and
+   see it on the Driver Station. This is your `println` — you can't pause a
+   moving robot in a debugger.
+4. **Watch the ball chase think.** Run "V1 TeleOp_ballseek," press **A**, and
+   move a ball around in front of the camera while watching the numbers change
+   on screen.
+5. **Ask for a real task.** There's a list of small, real fixes waiting — sized
+   exactly for a first pull request.
+
+**Rules for that first pull request:**
+- Numbers go in `config/`, never typed into the middle of an OpMode.
+- Hardware names go in `RobotHardwareNames`, never as quoted strings elsewhere.
+- Work on a branch, open a PR. Never push straight to `main`.
+
+---
+
+## 10. Words people will say at you
+
+Beyond the ones in START_HERE:
 
 | Term | Meaning |
 |---|---|
-| **OpMode** | a program you run on the robot; TeleOp or Autonomous |
-| **Driver Station** | the phone/tablet the drivers hold; picks and runs OpModes |
-| **Control Hub** | the computer on the robot that actually runs your code |
-| **hardwareMap** | the SDK's lookup table from config names to real devices |
-| **Telemetry** | text printed to the Driver Station screen — your `println` |
-| **Mecanum** | wheels with angled rollers; lets the robot strafe sideways |
-| **Odometry** | tracking position by measuring wheel/pod rotation (our `pinpoint`) |
-| **Pose** | robot position + heading: (x, y, angle) |
-| **Pedro Pathing** | the library that drives the robot along paths |
-| **FtcDashboard** | laptop web UI for live tuning + camera view |
-| **P controller** | `output = error × gain` — correct proportionally to how wrong you are |
-| **Subsystem** | one class owning one mechanism |
-| **Edge detection** | reacting to a button *becoming* pressed, not *being* pressed |
+| **hardwareMap** | the SDK's lookup table: config name → real device |
+| **Pedro Pathing** | the library that does our wheel math and path driving |
+| **FtcDashboard** | the live-tuning webpage from section 7 |
+| **P controller** | the "correct in proportion to how wrong you are" idea |
+| **Edge detection** | acting when a button *becomes* pressed, not while it *is* — the raised-hand game |
+| **Blob** | what the camera calls a connected patch of one color |
+| **PathChain** | a pre-planned route for autonomous, built for Pedro to follow |
+| **Deadzone** | the "ignore tiny stick wobble" filter |
 
 ---
 
 ## 11. Where to go next
 
-- [ROBOT_ARCHITECTURE_GUIDE.md](ROBOT_ARCHITECTURE_GUIDE.md) — the full rules, FSM
-  patterns, code templates, and the "what NOT to do" list.
-- [TeleOpMode.java](../v1/opmodes/TeleOpMode.java) — simplest complete OpMode.
-- [TeleOpMode_ballseek.java](../v1/opmodes/TeleOpMode_ballseek.java) — vision + autonomous behavior.
-- [DriveForwardOneAuto.java](../v1/opmodes/auto/DriveForwardOneAuto.java) — simplest autonomous.
+- [ROBOT_ARCHITECTURE_GUIDE.md](ROBOT_ARCHITECTURE_GUIDE.md) — the full rulebook: templates, state machines, what NOT to do.
+- [TeleOpMode.java](../v1/opmodes/TeleOpMode.java) — simplest complete OpMode. Read top to bottom once.
+- [TeleOpMode_ballseek.java](../v1/opmodes/TeleOpMode_ballseek.java) — the ball chase, now that you know its four moods.
+- [DriveForwardOneAuto.java](../v1/opmodes/auto/DriveForwardOneAuto.java) — our (so far only) autonomous.
 - Official FTC docs: <https://ftc-docs.firstinspires.org>
