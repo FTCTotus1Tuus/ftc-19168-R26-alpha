@@ -66,11 +66,16 @@ Once this clicks, the rest of the code stops looking weird.
 
 ## The robot has to remember things
 
-Here's the catch. Every pass through that loop is a **clean slate**. A variable
-you make inside the loop is gone when the pass ends.
+Here's the catch. Every pass through that loop is a **clean slate**.
 
-So anything the robot needs to *remember* has to live **outside** the loop, at the
-top of the class. That's why you'll see lines like this:
+Think of each pass as working on **scratch paper that gets thrown away** the
+moment the pass ends. Anything written on it is gone. If the robot needs to
+remember something from one pass to the next, it has to be written on the
+**whiteboard on the wall** instead — the variables declared at the top of the
+class, outside the loop. Scratch paper for this-pass-only math; whiteboard for
+anything that must survive.
+
+That's why you'll see lines like this at the top of the file:
 
 ```java
 private boolean isSeekMode = false;   // survives every pass
@@ -85,13 +90,55 @@ turning right and searches that way instead of spinning off the wrong direction.
 Move either one inside the loop and it resets 50 times a second. Same logic, one
 word moved, and the robot goes stupid.
 
+## "Pressed" and "held" are different things
+
+This one causes more robot bugs than anything else on this page, so here's the
+whole idea as a game:
+
+Imagine I ask you, **once per second**: *"Is your hand raised?"*
+
+You raise your hand for three seconds. You answered "yes" **three times** — even
+though you only raised it *once*. Now change the question to *"did your hand
+**just go up**?"* — and you'd answer yes, no, no. One yes for one raise.
+
+Same hand, same three seconds, completely different answers. The first question
+asks about a **state** (what's true right now). The second asks about a
+**change** (what just became true).
+
+Now speed it up: the robot asks its question **50 times a second**, and a human
+"tap" on a button lasts about a tenth of a second — five questions' worth. So:
+
+| The code asks | Answers during one tap | The action fires |
+|---|---|---|
+| "is the button down?" | yes, yes, yes, yes, yes | **5 times** |
+| "did it just go down?" | yes, no, no, no, no | **once** |
+
+Anything that should happen *once per press* — toggle a mode, start a timer —
+must ask the second question. And to know something *changed*, you have to
+remember what it was last time. That's a whiteboard job:
+
+```java
+boolean aPressed = gamepad1.a;
+if (aPressed && !prevAPressed) {    // down NOW, and NOT down last pass
+    // fires exactly once per press
+}
+prevAPressed = aPressed;            // remember for next pass — every pass!
+```
+
+You'll see this exact pattern in our TeleOp for the `A` and `back` buttons. When
+you add a button of your own, copy it.
+
 ## And "do this for 2 seconds" is not what you'd guess
 
 Your instinct is `Thread.sleep(2000)`. **Never do that here.** For those 2 seconds
 the loop is frozen — the robot ignores the camera, the gamepad, and the STOP
 button. Blind and unstoppable.
 
-Instead: a stopwatch that also lives outside the loop. Start it once...
+It's the difference between two cooks waiting on a toaster. One **stands frozen,
+staring at it** until it pops — ignoring the stove, the phone, the fire alarm.
+That's `sleep`. The other **sets a kitchen timer and keeps cooking**, glancing at
+it each time they pass. That's how the robot does it: a stopwatch that lives
+outside the loop. Start it once...
 
 ```java
 autoForwardMode = true;
@@ -184,8 +231,12 @@ of robotics:
 
 > **The more wrong you are, the harder you correct.**
 
-Ball is way off to the right? Turn hard right. Ball is *slightly* right? Turn
-gently right. Ball is centered? Don't turn at all.
+You already do this. Catching up to a friend walking ahead of you: far behind,
+you jog; getting close, you walk fast; beside them, you just match their pace.
+Nobody taught you a rule — you correct in proportion to how far off you are.
+
+The robot does the same with the ball. Way off to the right? Turn hard right.
+*Slightly* right? Turn gently right. Centered? Don't turn at all.
 
 You don't need `if` statements for that. You just multiply:
 
@@ -237,18 +288,20 @@ flowchart LR
 
 **Why is `clearBulkCache()` at the top of every loop?**
 
-Asking a motor "how fast are you going?" takes a surprisingly long time. Ask six
-sensors one at a time and you've eaten your whole 20 milliseconds. So instead we
-grab **all** the sensor readings in one big gulp and keep them in memory.
-`clearBulkCache()` means "throw away the old gulp, take a fresh one." If you
-forget it, your sensors quietly report the same stale number forever and you
-will lose an afternoon to it.
+Asking a motor "how fast are you going?" takes a surprisingly long time. It's
+like grocery shopping: six separate trips to the store for six items, versus one
+trip with a list. We do the one trip — grab **all** the sensor readings in one
+go and keep them in memory. `clearBulkCache()` means "that shopping is old,
+make a fresh trip." If you forget it, your sensors quietly report the same
+stale numbers forever, and you will lose an afternoon to it.
 
 **Why doesn't the code crash when the camera is unplugged?**
 
-On purpose. A robot that runs *without* vision can still play the match. A robot
-that crashes at startup forfeits. So every risky piece of hardware is wrapped in
-a "if this fails, keep going without it." When you write new code, do the same.
+On purpose. A car with a broken radio still drives — you'd never want the whole
+car to refuse to start because the radio died. Same rule here: a robot that runs
+*without* vision can still play the match, but a robot that crashes at startup
+forfeits. So every risky piece of hardware is wrapped in "if this fails, keep
+going without it." When you write new code, do the same.
 
 ---
 
