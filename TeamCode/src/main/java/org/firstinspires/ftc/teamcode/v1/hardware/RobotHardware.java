@@ -66,13 +66,15 @@ public class RobotHardware {
             webcam = null;
         }
 
-        // ── Season devices ───────────────────────────────────────────────────────────────────────
-        // Add hardwareMap.get() calls here as new mechanisms are added each season.
-        // Example:
-        //   liftMotor = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.LIFT_MOTOR);
-        //   liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-           intakeFront = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.INTAKE_FRONT);
-           intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        try {
+            intakeFront = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.INTAKE_FRONT);
+        } catch (Exception ignored) {
+            intakeFront = null;
+        }
+        //if intake is not null let power go down slowly when stopped
+        if (intakeFront != null) {
+            intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+        }
     }
 
     /**
@@ -134,7 +136,9 @@ public class RobotHardware {
     public WebcamName getWebcam() {
         return webcam;
     }
-    public DcMotorEx getIntakeFront() {return intakeFront;}
+    public DcMotorEx getIntakeFront() {
+        return intakeFront;
+    }
 }
 
 

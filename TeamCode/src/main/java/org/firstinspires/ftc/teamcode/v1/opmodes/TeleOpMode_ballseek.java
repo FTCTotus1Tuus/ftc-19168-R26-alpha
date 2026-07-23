@@ -98,7 +98,6 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
                 } else if (intakeState == IntakeStates.IN) {
                     intakeState = IntakeStates.OFF;
-
                 }
             }
 

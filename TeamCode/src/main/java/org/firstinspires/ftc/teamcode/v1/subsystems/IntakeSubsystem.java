@@ -1,5 +1,6 @@
 package org.firstinspires.ftc.teamcode.v1.subsystems;
 
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
 import com.qualcomm.robotcore.util.RobotLog;
 
@@ -19,12 +20,16 @@ public class IntakeSubsystem {
     };
 
     public void start(){
-      hardware.getIntakeFront().setPower(-IntakeConfig.INTAKE_POWER);
-
+        DcMotorEx motor = hardware.getIntakeFront();
+        if (motor != null) {
+            hardware.getIntakeFront().setPower(-IntakeConfig.INTAKE_POWER);
+        }
     };
 
     public void stop(){
-        hardware.getIntakeFront().setPower(0);
-
+        DcMotorEx motor = hardware.getIntakeFront();
+        if (motor != null) {
+            hardware.getIntakeFront().setPower(0);
+        }
     };
 }
