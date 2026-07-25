@@ -5,8 +5,11 @@ import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
+import com.qualcomm.robotcore.hardware.DistanceSensor;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
+import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
@@ -15,7 +18,7 @@ import org.firstinspires.ftc.teamcode.v1.services.VisionService;
  * Reads gamepad input and delegates to subsystems via RobotContainer.
  * Contains no hardware references — everything goes through robot.* fields.
  *
- * Loop order: clear bulk cache → read input → update subsystems → telemetry.
+ * Loop order: clear bulk cache → update odometry → read input → queue drive → telemetry.
  */
 @TeleOp(name = "V1 TeleOp_ballseek", group = "v1")
 public class TeleOpMode_ballseek extends RobotOpMode {
@@ -37,6 +40,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private boolean prevBallWasVisible = false;
 
     private boolean prevBallWasClose = false;
+    private boolean isReturnToOriginMode = false;
+    private boolean isReturnTriggerArmed = true;
 
     private boolean autoForwardMode = false;
 
@@ -46,6 +51,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private double forward = 0;
     private double turn = 0;
 
+
+    private boolean prevStartPressed = false;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -72,14 +79,28 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             // 1. Clear bulk cache — must be the very first call in the loop.
             robot.hardware.clearBulkCache();
 
-            // 1.5 Toggle field-centric on rising edge of back button.
+            // 2. Advance the Pedro Pathing follower: ticks the Pinpoint localizer so
+            //    getPose() is fresh, and applies the drive powers queued last iteration.
+            //    This must run every loop — before any drive-command logic — so odometry
+            //    is never silently skipped by an early return in a drive branch (seek,
+            //    auto-forward, or future auto-park).
+            robot.drive.update();
+
+            // 3. Toggle field-centric on rising edge of back button.
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
                 isFieldCentric = !isFieldCentric;
             }
             prevBackPressed = backPressed;
 
-            // 1.6 Toggle seek mode on rising edge of A button.
+            // 3.2 Reset odometry to origin (0, 0, 0°) on rising edge of start button.
+            boolean startPressed = gamepad1.start;
+            if (startPressed && !prevStartPressed) {
+                robot.localization.resetToOrigin();
+            }
+            prevStartPressed = startPressed;
+
+            // 3.5 Toggle seek mode on rising edge of A button.
             boolean aPressed = gamepad1.a;
             if (aPressed && !prevAButtonPressed) {
                 isSeekMode = !isSeekMode;
@@ -102,10 +123,30 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
             }
 
+            NormalizedColorSensor rightColorSensor = robot.hardware.getRightColorSensor();
+            NormalizedColorSensor leftColorSensor = robot.hardware.getLeftColorSensor();
+            if (rightColorSensor instanceof DistanceSensor && leftColorSensor instanceof DistanceSensor) {
+                double rightDistanceCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
+                double leftDistanceCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
+                telemetry.addData("Right Color Dist", "%.1f cm", rightDistanceCm);
+                telemetry.addData("Left Color Dist", "%.1f cm", leftDistanceCm);
+                boolean isWithinReturnTrigger = rightDistanceCm <= TeleOpMode_ballseekConfig.BALL_RETURN_TRIGGER_DISTANCE_CM
+                        || leftDistanceCm <= TeleOpMode_ballseekConfig.BALL_RETURN_TRIGGER_DISTANCE_CM;
+                if (isSeekMode && isReturnTriggerArmed && isWithinReturnTrigger) {
+                    isReturnToOriginMode = true;
+                    isReturnTriggerArmed = false;
+                } else if (!isWithinReturnTrigger
+                        && rightDistanceCm >= TeleOpMode_ballseekConfig.BALL_RETURN_REARM_DISTANCE_CM
+                        && leftDistanceCm >= TeleOpMode_ballseekConfig.BALL_RETURN_REARM_DISTANCE_CM) {
+                    // Rearm only after both sensors are safely outside the trigger band.
+                    isReturnTriggerArmed = true;
+                }
+            }
 
-            // 2. Read input and drive.
 
-            //3. Always do Ball scanning
+            // 4. Read input and drive.
+
+            // 5. Ball scanning: always run regardless of drive mode.
             VisionService.BallTarget target = robot.vision.getBallTarget();
 
 
@@ -168,7 +209,53 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
             }
 
-            if (!isSeekMode)  {
+            if (isReturnToOriginMode) {
+                Pose returnPose = robot.drive.getPose();
+                if (returnPose == null) {
+                    // If pose is unavailable, fail safe and stop this mode.
+                    isReturnToOriginMode = false;
+                    robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                } else {
+                    double dx = -returnPose.getX();
+                    double dy = -returnPose.getY();
+                    double distanceToOrigin = Math.hypot(dx, dy);
+                    double headingError = normalizeRadians(-returnPose.getHeading());
+
+                    boolean atOrigin = distanceToOrigin <= TeleOpMode_ballseekConfig.BALL_RETURN_ORIGIN_TOLERANCE_IN;
+                    boolean headingAligned = Math.abs(headingError) <= Math.toRadians(TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_TOLERANCE_DEG);
+
+                    if (atOrigin && headingAligned) {
+                        isReturnToOriginMode = false;
+                        robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                    } else {
+                        double fieldSpeed = Range.clip(
+                                distanceToOrigin * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
+                                0.0,
+                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
+                        );
+                        double fieldX = (distanceToOrigin > 1e-6) ? (dx / distanceToOrigin) * fieldSpeed : 0.0;
+                        double fieldY = (distanceToOrigin > 1e-6) ? (dy / distanceToOrigin) * fieldSpeed : 0.0;
+
+                        // Rotate field-frame command into robot frame (same transform as field-centric drive).
+                        double heading = returnPose.getHeading();
+                        double strafeCmd = fieldX * Math.cos(heading) - fieldY * Math.sin(heading);
+                        double forwardCmd = fieldX * Math.sin(heading) + fieldY * Math.cos(heading);
+
+                        double turnCmd = Range.clip(
+                                headingError * TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_KP,
+                                -TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX,
+                                TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX
+                        );
+
+                        robot.drive.setTeleOpDrive(forwardCmd, strafeCmd, turnCmd);
+                    }
+                }
+                if (isSeekMode) {
+                    robot.intake.start();
+                } else {
+                    robot.intake.stop();
+                }
+            } else if (!isSeekMode)  {
                 applyTeleOpDrive(
                         gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
                         gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
@@ -212,6 +299,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
                     : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+            telemetry.addData("Odometry Reset", "gamepad1.start  |  status: " + robot.localization.getStatus());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
                     ? DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD
@@ -226,6 +314,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addData("Centered", prevBallWasCentered);
             telemetry.addData("Close", prevBallWasClose);
             telemetry.addData("AutoForward", autoForwardMode);
+            telemetry.addData("Return To Origin", isReturnToOriginMode);
+            telemetry.addData("Return Trigger Armed", isReturnTriggerArmed);
             telemetry.addData("AutoForward Timer", autoForwardTimer.time());
             telemetry.addData("Ball Visible Timer", ballVisibleTimer.time());
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
@@ -243,6 +333,16 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         }
 
         stopRobot();
+    }
+
+    private static double normalizeRadians(double angleRad) {
+        while (angleRad > Math.PI) {
+            angleRad -= 2.0 * Math.PI;
+        }
+        while (angleRad < -Math.PI) {
+            angleRad += 2.0 * Math.PI;
+        }
+        return angleRad;
     }
 
     public void applyTeleOpDrive(

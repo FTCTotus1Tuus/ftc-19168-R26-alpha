@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
  * Reads gamepad input and delegates to subsystems via RobotContainer.
  * Contains no hardware references — everything goes through robot.* fields.
  *
- * Loop order: clear bulk cache → read input → update subsystems → telemetry.
+ * Loop order: clear bulk cache → update odometry → read input → queue drive → telemetry.
  */
 @TeleOp(name = "V1 TeleOp", group = "v1")
 public class TeleOpMode extends RobotOpMode {
@@ -17,6 +17,7 @@ public class TeleOpMode extends RobotOpMode {
     // Field-centric mode toggle state and edge detection for gamepad1.back.
     private boolean isFieldCentric = false;
     private boolean prevBackPressed = false;
+    private boolean prevStartPressed = false;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -40,14 +41,27 @@ public class TeleOpMode extends RobotOpMode {
             // 1. Clear bulk cache — must be the very first call in the loop.
             robot.hardware.clearBulkCache();
 
-            // 1.5 Toggle field-centric on rising edge of back button.
+            // 2. Advance the Pedro Pathing follower: ticks the Pinpoint localizer so
+            //    getPose() is fresh, and applies the drive powers queued last iteration.
+            //    This must run every loop — before any drive-command logic — so odometry
+            //    is never silently skipped by an early return in a drive branch.
+            robot.drive.update();
+
+            // 3. Toggle field-centric on rising edge of back button.
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
                 isFieldCentric = !isFieldCentric;
             }
             prevBackPressed = backPressed;
 
-            // 2. Read input and drive.
+            // 3.2 Reset odometry to origin (0, 0, 0°) on rising edge of start button.
+            boolean startPressed = gamepad1.start;
+            if (startPressed && !prevStartPressed) {
+                robot.localization.resetToOrigin();
+            }
+            prevStartPressed = startPressed;
+
+            // 4. Read input and queue drive commands.
             applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
                     gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
@@ -71,6 +85,7 @@ public class TeleOpMode extends RobotOpMode {
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
                     : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+            telemetry.addData("Odometry Reset", "gamepad1.start  |  status: " + robot.localization.getStatus());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
                     ? DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD
