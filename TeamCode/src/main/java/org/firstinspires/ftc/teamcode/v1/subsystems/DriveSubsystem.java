@@ -73,7 +73,7 @@ public class DriveSubsystem {
      */
     public void setTeleOpDrive(double forward, double strafe, double turn) {
         if (follower != null) {
-            follower.setTeleOpDrive(forward, strafe, turn, true);
+            follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.TELEOP_ROTATION_SCALE, true);
         }
     }
 
