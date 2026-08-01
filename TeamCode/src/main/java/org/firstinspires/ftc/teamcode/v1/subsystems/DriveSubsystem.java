@@ -53,6 +53,17 @@ public class DriveSubsystem {
         }
     }
 
+    /**
+     * Re-enters TeleOp drive mode after autonomous path following completes.
+     * Call once when switching back from a followPath() sequence so that
+     * setTeleOpDrive() inputs are accepted again.
+     */
+    public void resumeTeleOpDrive() {
+        if (follower != null) {
+            follower.startTeleopDrive(true);
+        }
+    }
+
     /** Stops the follower and halts all drive motors. */
     public void stop() {
         if (follower != null) {

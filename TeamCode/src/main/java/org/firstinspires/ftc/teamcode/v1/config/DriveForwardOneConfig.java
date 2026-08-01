@@ -19,7 +19,7 @@ public final class DriveForwardOneConfig {
 
     // Route shape controls. Flip FORWARD_AXIS_SIGN_X to -1.0 if "forward" is currently reversed.
     public static double FORWARD_DISTANCE_IN = 18.0; // Tune this to hit the target distance (24 in)
-    public static double FORWARD_AXIS_SIGN_X = -1.0;
+    public static double FORWARD_AXIS_SIGN_X = 1.0;
     public static double STRAFE_OFFSET_IN = 0.0;
 
     // Safety watchdogs for early-season bring-up.

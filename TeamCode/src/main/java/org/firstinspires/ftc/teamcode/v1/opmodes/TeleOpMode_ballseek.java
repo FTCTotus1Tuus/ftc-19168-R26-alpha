@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
 import com.pedropathing.geometry.Pose;
+import com.pedropathing.localization.PoseTracker;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
@@ -40,16 +41,27 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private boolean prevBallWasVisible = false;
 
     private boolean prevBallWasClose = false;
-    private boolean isReturnToOriginMode = false;
-    private boolean isReturnTriggerArmed = true;
+    private boolean isReturnToLocationAMode = false;
 
     private boolean autoForwardMode = false;
+    private boolean isBallDetected = false;
+    private boolean isRawBallDetected = false;
+    private boolean isBallDetectionCandidate = false;
 
     private ElapsedTime autoForwardTimer;
     private ElapsedTime ballVisibleTimer;
+    private ElapsedTime ballDetectConfirmTimer;
+    private ElapsedTime deliverDwellTimer;
 
     private double forward = 0;
     private double turn = 0;
+    private enum SeekState {
+        SEEK_BALL,
+        RETURN_TO_LOCATION_A,
+        DWELL_AT_LOCATION_A
+    }
+
+    private SeekState seekState = SeekState.SEEK_BALL;
 
 
     private boolean prevStartPressed = false;
@@ -66,7 +78,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         telemetry.update();
         autoForwardTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
         ballVisibleTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-        // todo: init timer to 1 second
+        ballDetectConfirmTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+        deliverDwellTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
         waitForStart();
         if (isStopRequested()) {
@@ -106,8 +119,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 isSeekMode = !isSeekMode;
                 if (isSeekMode) {
                     intakeState = IntakeStates.IN;
+                    seekState = SeekState.SEEK_BALL;
                 }else {
                     intakeState = IntakeStates.OFF;
+                    seekState = SeekState.SEEK_BALL;
+                    isReturnToLocationAMode = false;
+                    autoForwardMode = false;
+                    resetBallTrackingState();
                 }
 
             }
@@ -130,16 +148,19 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 double leftDistanceCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
                 telemetry.addData("Right Color Dist", "%.1f cm", rightDistanceCm);
                 telemetry.addData("Left Color Dist", "%.1f cm", leftDistanceCm);
-                boolean isWithinReturnTrigger = rightDistanceCm <= TeleOpMode_ballseekConfig.BALL_RETURN_TRIGGER_DISTANCE_CM
-                        || leftDistanceCm <= TeleOpMode_ballseekConfig.BALL_RETURN_TRIGGER_DISTANCE_CM;
-                if (isSeekMode && isReturnTriggerArmed && isWithinReturnTrigger) {
-                    isReturnToOriginMode = true;
-                    isReturnTriggerArmed = false;
-                } else if (!isWithinReturnTrigger
-                        && rightDistanceCm >= TeleOpMode_ballseekConfig.BALL_RETURN_REARM_DISTANCE_CM
-                        && leftDistanceCm >= TeleOpMode_ballseekConfig.BALL_RETURN_REARM_DISTANCE_CM) {
-                    // Rearm only after both sensors are safely outside the trigger band.
-                    isReturnTriggerArmed = true;
+
+                isRawBallDetected = rightDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM
+                        || leftDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM;
+
+                if (isRawBallDetected) {
+                    if (!isBallDetectionCandidate) {
+                        isBallDetectionCandidate = true;
+                        ballDetectConfirmTimer.reset();
+                    }
+                    isBallDetected = ballDetectConfirmTimer.time() >= TeleOpMode_ballseekConfig.DETECT_CONFIRM_SEC;
+                } else {
+                    isBallDetectionCandidate = false;
+                    isBallDetected = false;
                 }
             }
 
@@ -151,62 +172,71 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
 
             // time based movement when ball ready (visible, centered, and close)
+            if (isSeekMode && seekState == SeekState.SEEK_BALL) {
+                if (target.isVisible) {
+                    ballVisibleTimer.reset();
+                    prevBallWasVisible = true;
+                    // Steering: proportional to horizontal error
+                    turn = Range.clip(
+                            target.normalizedXError * TeleOpMode_ballseekConfig.BALL_SEEK_TURN_KP,
+                            -TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX,
+                            TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX
+                    );
 
-            if (target.isVisible) {
-                ballVisibleTimer.reset();
-                prevBallWasVisible = true;
-                // Steering: proportional to horizontal error
-                turn = Range.clip(
-                        target.normalizedXError * TeleOpMode_ballseekConfig.BALL_SEEK_TURN_KP,
-                        -TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX,
-                        TeleOpMode_ballseekConfig.BALL_SEEK_TURN_MAX
-                );
-
-                // Approach: slow down as ball appears larger
-                double radiusError = TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
-                forward = Range.clip(
-                        radiusError * TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_KP,
-                        0.0,
-                        TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX
-                );
+                    // Approach: slow down as ball appears larger
+                    double radiusError = TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX - target.radiusPx;
+                    forward = Range.clip(
+                            radiusError * TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_KP,
+                            0.0,
+                            TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX
+                    );
 
 
-                // If centered and close enough, stop
-                if (target.radiusPx >= TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX) {
-                    forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
-                    prevBallWasClose = true;
+                    // If centered and close enough, stop
+                    if (target.radiusPx >= TeleOpMode_ballseekConfig.BALL_TARGET_RADIUS_PX) {
+                        forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
+                        prevBallWasClose = true;
+                    }
+                    if (Math.abs(target.normalizedXError) <= TeleOpMode_ballseekConfig.BALL_CENTER_TOLERANCE) {
+                        turn = 0.0;
+                        prevBallWasCentered = true;
+                    }
+                    if (prevBallWasClose && prevBallWasCentered) {
+                        autoForwardMode = true;
+                        autoForwardTimer.reset();
+                    }
+
+
+                } else if (ballVisibleTimer.time() > TeleOpMode_ballseekConfig.BALL_VISIBLE_SEC) {
+                    prevBallWasVisible = false;
+                    prevBallWasCentered = false;
+                    prevBallWasClose = false;
+                    // Target lost: slow scan in place
+                    forward = 0.0;
+                    if (Math.signum(turn) == 0) {
+                        turn = TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
+                    } else {
+                        turn = Math.signum(turn) * TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
+                    }
                 }
-                if (Math.abs(target.normalizedXError) <= TeleOpMode_ballseekConfig.BALL_CENTER_TOLERANCE) {
-                    turn = 0.0;
-                    prevBallWasCentered = true;
-                }
-                if (prevBallWasClose && prevBallWasCentered) {
-                    autoForwardMode = true;
-                    autoForwardTimer.reset();
-                }
 
-
-            } else if (ballVisibleTimer.time() > TeleOpMode_ballseekConfig.BALL_VISIBLE_SEC) {
-                prevBallWasVisible = false;
-                prevBallWasCentered = false;
-                prevBallWasClose = false;
-                // Target lost: slow scan in place
-                forward = 0.0;
-                if (Math.signum(turn) == 0) {
-                    turn = TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
-                } else {
-                    turn = Math.signum(turn) * TeleOpMode_ballseekConfig.BALL_SEARCH_TURN;
+                if (autoForwardMode) {
+                    // Stop rotating and move forward for as long as timer commands
+                    if (autoForwardTimer.time() >= TeleOpMode_ballseekConfig.BALL_TIMER_SEC) {
+                        autoForwardMode = false;
+                    } else {
+                        forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
+                        turn = 0.0;
+                    }
                 }
             }
 
-            if (autoForwardMode) {
-                // Stop rotating and move forward for as long as timer commands
-                if (autoForwardTimer.time() >= TeleOpMode_ballseekConfig.BALL_TIMER_SEC) {
-                    autoForwardMode = false;
-                } else {
-                    forward = TeleOpMode_ballseekConfig.BALL_SEEK_FORWARD_MAX;
-                    turn = 0.0;
-                }
+            if (isSeekMode && seekState == SeekState.SEEK_BALL && isBallDetected) {
+                seekState = SeekState.RETURN_TO_LOCATION_A;
+                isReturnToLocationAMode = true;
+                autoForwardMode = false;
+                forward = 0.0;
+                turn = 0.0;
             }
 
             if (!isSeekMode)  {
@@ -236,9 +266,58 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
             }
             else {
-                robot.drive.setTeleOpDrive(-forward, 0.0, turn);//disabled to read the telemetry values without robot moving
+                if (seekState == SeekState.SEEK_BALL) {
+                    robot.drive.setTeleOpDrive(-forward, 0.0, turn);
+                } else if (seekState == SeekState.RETURN_TO_LOCATION_A) {
+                    Pose currentPose = robot.drive.getPose();
+                    Pose locationA = getLocationAPose();
+
+                    if (currentPose == null) {
+                        robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                    } else {
+                        double xError = locationA.getX() - currentPose.getX();
+                        double yError = locationA.getY() - currentPose.getY();
+                        double distanceError = Math.hypot(xError, yError);
+                        double headingError = normalizeRadians(locationA.getHeading() - currentPose.getHeading());
+                        double headingErrorDeg = Math.abs(Math.toDegrees(headingError));
+
+                        double returnForward = Range.clip(
+                                xError * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
+                                -TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX,
+                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
+                        );
+                        double returnStrafe = Range.clip(
+                                yError * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
+                                -TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX,
+                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
+                        );
+                        double returnTurn = Range.clip(
+                                headingError * TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_KP,
+                                -TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX,
+                                TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX
+                        );
+
+                        robot.drive.setTeleOpDrive(returnForward, returnStrafe, returnTurn);
+
+                        if (distanceError <= TeleOpMode_ballseekConfig.BALL_RETURN_ORIGIN_TOLERANCE_IN
+                                && headingErrorDeg <= TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_TOLERANCE_DEG) {
+                            seekState = SeekState.DWELL_AT_LOCATION_A;
+                            deliverDwellTimer.reset();
+                            robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                        }
+                    }
+                } else if (seekState == SeekState.DWELL_AT_LOCATION_A) {
+                    robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                    if (deliverDwellTimer.time() >= TeleOpMode_ballseekConfig.DELIVER_DWELL_SEC) {
+                        seekState = SeekState.SEEK_BALL;
+                        isReturnToLocationAMode = false;
+                        autoForwardMode = false;
+                        forward = 0.0;
+                        turn = 0.0;
+                        resetBallTrackingState();
+                    }
+                }
                 robot.intake.start();
-                //robot.drive.setTeleOpDrive(0, 0.0, 0);//re-enable when ready to test ball seeking
             }
 
             telemetry.addData("Ball Visible", target.isVisible);
@@ -268,8 +347,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addData("Centered", prevBallWasCentered);
             telemetry.addData("Close", prevBallWasClose);
             telemetry.addData("AutoForward", autoForwardMode);
-            telemetry.addData("Return To Origin", isReturnToOriginMode);
-            telemetry.addData("Return Trigger Armed", isReturnTriggerArmed);
+            telemetry.addData("Seek State", seekState);
+            telemetry.addData("Return To locationA", isReturnToLocationAMode);
+            telemetry.addData("Ball Detect Raw", isRawBallDetected);
+            telemetry.addData("Ball Detect Confirmed", isBallDetected);
+            telemetry.addData("Ball Detect Candidate", isBallDetectionCandidate);
+            telemetry.addData("Ball Detect Timer", ballDetectConfirmTimer.time());
+            telemetry.addData("Deliver Dwell Timer", deliverDwellTimer.time());
             telemetry.addData("AutoForward Timer", autoForwardTimer.time());
             telemetry.addData("Ball Visible Timer", ballVisibleTimer.time());
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
@@ -297,6 +381,24 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             angleRad += 2.0 * Math.PI;
         }
         return angleRad;
+    }
+
+    private Pose getLocationAPose() {
+        return new Pose(
+                TeleOpMode_ballseekConfig.LOCATION_A_X,
+                TeleOpMode_ballseekConfig.LOCATION_A_Y,
+                Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG)
+        );
+    }
+
+    private void resetBallTrackingState() {
+        isRawBallDetected = false;
+        isBallDetected = false;
+        isBallDetectionCandidate = false;
+        prevBallWasVisible = false;
+        prevBallWasCentered = false;
+        prevBallWasClose = false;
+        ballDetectConfirmTimer.reset();
     }
 
     public void applyTeleOpDrive(
