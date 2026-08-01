@@ -209,53 +209,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
             }
 
-            if (isReturnToOriginMode) {
-                Pose returnPose = robot.drive.getPose();
-                if (returnPose == null) {
-                    // If pose is unavailable, fail safe and stop this mode.
-                    isReturnToOriginMode = false;
-                    robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
-                } else {
-                    double dx = -returnPose.getX();
-                    double dy = -returnPose.getY();
-                    double distanceToOrigin = Math.hypot(dx, dy);
-                    double headingError = normalizeRadians(-returnPose.getHeading());
-
-                    boolean atOrigin = distanceToOrigin <= TeleOpMode_ballseekConfig.BALL_RETURN_ORIGIN_TOLERANCE_IN;
-                    boolean headingAligned = Math.abs(headingError) <= Math.toRadians(TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_TOLERANCE_DEG);
-
-                    if (atOrigin && headingAligned) {
-                        isReturnToOriginMode = false;
-                        robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
-                    } else {
-                        double fieldSpeed = Range.clip(
-                                distanceToOrigin * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
-                                0.0,
-                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
-                        );
-                        double fieldX = (distanceToOrigin > 1e-6) ? (dx / distanceToOrigin) * fieldSpeed : 0.0;
-                        double fieldY = (distanceToOrigin > 1e-6) ? (dy / distanceToOrigin) * fieldSpeed : 0.0;
-
-                        // Rotate field-frame command into robot frame (same transform as field-centric drive).
-                        double heading = returnPose.getHeading();
-                        double strafeCmd = fieldX * Math.cos(heading) - fieldY * Math.sin(heading);
-                        double forwardCmd = fieldX * Math.sin(heading) + fieldY * Math.cos(heading);
-
-                        double turnCmd = Range.clip(
-                                headingError * TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_KP,
-                                -TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX,
-                                TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX
-                        );
-
-                        robot.drive.setTeleOpDrive(forwardCmd, strafeCmd, turnCmd);
-                    }
-                }
-                if (isSeekMode) {
-                    robot.intake.start();
-                } else {
-                    robot.intake.stop();
-                }
-            } else if (!isSeekMode)  {
+            if (!isSeekMode)  {
                 applyTeleOpDrive(
                         gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
                         gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
