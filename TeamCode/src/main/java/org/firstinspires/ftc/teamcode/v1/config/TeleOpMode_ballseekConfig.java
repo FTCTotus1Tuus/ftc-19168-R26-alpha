@@ -23,4 +23,14 @@ public class TeleOpMode_ballseekConfig {
     public static double BALL_RETURN_ORIGIN_TOLERANCE_IN = 1.5;
     public static double BALL_RETURN_HEADING_TOLERANCE_DEG = 6.0;
     public static double BALL_RETURN_REARM_DISTANCE_CM = 14.0;
+
+    // Ball detection → deliver to locationA
+    public static double DETECT_TRIGGER_CM = 6.0;         // sensor threshold to count as ball detected
+    public static double DETECT_CONFIRM_SEC = 0.3;        // sustained detection duration before committing
+    public static double DELIVER_DWELL_SEC = 3.0;         // seconds to wait at locationA before resuming seek
+
+    // locationA destination — tunable via FTCDashboard
+    public static double LOCATION_A_X = 96.0;             // inches
+    public static double LOCATION_A_Y = 96.0;             // inches
+    public static double LOCATION_A_HEADING_DEG = 70.0;   // degrees (converted to radians when path is built)
 }
