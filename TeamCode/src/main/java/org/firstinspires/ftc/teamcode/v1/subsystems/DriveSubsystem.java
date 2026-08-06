@@ -103,6 +103,12 @@ public class DriveSubsystem {
         }
     }
 
+    public void setMaxPower(double power){
+        if (follower != null) {
+            follower.setMaxPower(power);
+        }
+    }
+
     /**
      * Returns a PathBuilder pre-bound to this Follower.
      * Use it to build PathChains without touching the Follower directly.

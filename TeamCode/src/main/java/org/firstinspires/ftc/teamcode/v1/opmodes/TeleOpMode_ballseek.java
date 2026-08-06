@@ -282,7 +282,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                                 .build();
 
                         // Start path following
+                        robot.drive.setMaxPower(0.3);
                         robot.drive.followPath(parkPath, true);
+
 
                         // Kill switch
                         if (gamepad1.a && seekState == SeekState.RETURN_TO_LOCATION_A) {
