@@ -23,7 +23,7 @@ import org.firstinspires.ftc.teamcode.v1.services.VisionService;
  *
  * Loop order: clear bulk cache → update odometry → read input → queue drive → telemetry.
  */
-@TeleOp(name = "V1 TeleOp_ballseek 2", group = "v1")
+@TeleOp(name = "V1 TeleOp_ballseek", group = "v1")
 public class TeleOpMode_ballseek extends RobotOpMode {
 
     // Field-centric mode toggle state and edge detection for gamepad1.back.
