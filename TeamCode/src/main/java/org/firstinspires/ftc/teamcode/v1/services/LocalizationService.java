@@ -107,11 +107,11 @@ public class LocalizationService {
                 pinpoint.resetPosAndIMU();
                 pinpoint.update();
             }
-            Pose origin = new Pose(0, 0, 0);
+            Pose origin = new Pose(8.5, 8.5, 0);
             if (drive.isAvailable()) {
                 drive.setStartingPose(origin);
             }
-            status = "Reset to origin (0, 0, 0°)";
+            status = "Reset to origin (8.5, 8.5, 0°)";
             RobotLog.ii(TAG, "Pose reset to field origin");
         } catch (Throwable t) {
             RobotLog.ee(TAG, t, "resetToOrigin failed; pose may be stale");
