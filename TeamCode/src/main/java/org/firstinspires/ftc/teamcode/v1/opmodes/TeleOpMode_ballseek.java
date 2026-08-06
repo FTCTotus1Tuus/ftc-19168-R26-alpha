@@ -128,6 +128,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     isReturnToLocationAMode = false;
                     autoForwardMode = false;
                     resetBallTrackingState();
+                    // A pressed mid-return is the driver's abort: break any in-progress
+                    // path and re-enter teleop drive, or the sticks stay dead.
+                    robot.drive.stop();
+                    robot.drive.resumeTeleOpDrive();
                 }
 
             }
@@ -233,12 +237,29 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
             }
 
+            // Transition: ball collected → start the return path ONCE, at this edge.
+            // followPath() must not be re-issued every loop — restarting the path each
+            // pass resets the follower's progress and the robot never actually drives.
             if (isSeekMode && seekState == SeekState.SEEK_BALL && isBallDetected) {
-                seekState = SeekState.RETURN_TO_LOCATION_A;
-                isReturnToLocationAMode = true;
-                autoForwardMode = false;
-                forward = 0.0;
-                turn = 0.0;
+                Pose pathStartPose = robot.drive.getPose();
+                if (pathStartPose != null) {
+                    PathChain parkPath = robot.drive.pathBuilder()
+                            .addPath(new BezierLine(
+                                    new Pose(pathStartPose.getX(), pathStartPose.getY()),
+                                    new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
+                            ))
+                            .setLinearHeadingInterpolation(pathStartPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
+                            .build();
+                    // holdEnd=false so isFollowing() goes false on arrival (matches AutonomousBase usage);
+                    // with holdEnd=true the follower can report busy forever and DWELL is never reached.
+                    robot.drive.followPath(parkPath, false);
+                    seekState = SeekState.RETURN_TO_LOCATION_A;
+                    isReturnToLocationAMode = true;
+                    autoForwardMode = false;
+                    forward = 0.0;
+                    turn = 0.0;
+                }
+                // If pose is unavailable, stay in SEEK_BALL — no path without localization.
             }
 
             if (!isSeekMode)  {
@@ -271,35 +292,15 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 if (seekState == SeekState.SEEK_BALL) {
                     robot.drive.setTeleOpDrive(-forward, 0.0, turn);
                 } else if (seekState == SeekState.RETURN_TO_LOCATION_A) {
-                        // Build path from current pose to park pose
-                        Pose currentPose = robot.drive.getPose();
-                        PathChain parkPath = robot.drive.pathBuilder()
-                                .addPath(new BezierLine(
-                                        new Pose(currentPose.getX(), currentPose.getY()),
-                                        new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
-                                ))
-                                .setLinearHeadingInterpolation(currentPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
-                                .build();
-
-                        // Start path following
-                        robot.drive.setMaxPower(0.3);
-                        robot.drive.followPath(parkPath, true);
-
-
-                        // Kill switch
-                        if (gamepad1.a && seekState == SeekState.RETURN_TO_LOCATION_A) {
-                            // Manual override: hand control back to the driver immediately.
-                            isSeekMode = false;
-                            seekState = SeekState.SEEK_BALL;
-                            isReturnToLocationAMode = false;
-                            autoForwardMode = false;
-                            forward = 0.0;
-                            turn = 0.0;
-                            intakeState = IntakeStates.OFF;
-                            resetBallTrackingState();
-                            robot.drive.stop();
-                            robot.drive.resumeTeleOpDrive();
-                        }
+                    // Path was started once at the detection transition. The per-loop
+                    // robot.drive.update() at the top of the loop drives it — issue NO
+                    // drive commands here or they fight the follower.
+                    if (!robot.drive.isFollowing()) {
+                        // Arrived: hand the wheels back to teleop control, then dwell.
+                        robot.drive.resumeTeleOpDrive();
+                        seekState = SeekState.DWELL_AT_LOCATION_A;
+                        deliverDwellTimer.reset();
+                    }
                 } else if (seekState == SeekState.DWELL_AT_LOCATION_A) {
                     robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
                     if (deliverDwellTimer.time() >= TeleOpMode_ballseekConfig.DELIVER_DWELL_SEC) {
