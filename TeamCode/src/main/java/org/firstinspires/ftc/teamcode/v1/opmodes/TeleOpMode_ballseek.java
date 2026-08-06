@@ -1,7 +1,9 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
+import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.localization.PoseTracker;
+import com.pedropathing.paths.PathChain;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
@@ -21,7 +23,7 @@ import org.firstinspires.ftc.teamcode.v1.services.VisionService;
  *
  * Loop order: clear bulk cache → update odometry → read input → queue drive → telemetry.
  */
-@TeleOp(name = "V1 TeleOp_ballseek", group = "v1")
+@TeleOp(name = "V1 TeleOp_ballseek 2", group = "v1")
 public class TeleOpMode_ballseek extends RobotOpMode {
 
     // Field-centric mode toggle state and edge detection for gamepad1.back.
@@ -269,43 +271,33 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 if (seekState == SeekState.SEEK_BALL) {
                     robot.drive.setTeleOpDrive(-forward, 0.0, turn);
                 } else if (seekState == SeekState.RETURN_TO_LOCATION_A) {
-                    Pose currentPose = robot.drive.getPose();
-                    Pose locationA = getLocationAPose();
+                        // Build path from current pose to park pose
+                        Pose currentPose = robot.drive.getPose();
+                        PathChain parkPath = robot.drive.pathBuilder()
+                                .addPath(new BezierLine(
+                                        new Pose(currentPose.getX(), currentPose.getY()),
+                                        new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
+                                ))
+                                .setLinearHeadingInterpolation(currentPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
+                                .build();
 
-                    if (currentPose == null) {
-                        robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
-                    } else {
-                        double xError = locationA.getX() - currentPose.getX();
-                        double yError = locationA.getY() - currentPose.getY();
-                        double distanceError = Math.hypot(xError, yError);
-                        double headingError = normalizeRadians(locationA.getHeading() - currentPose.getHeading());
-                        double headingErrorDeg = Math.abs(Math.toDegrees(headingError));
+                        // Start path following
+                        robot.drive.followPath(parkPath, true);
 
-                        double returnForward = Range.clip(
-                                xError * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
-                                -TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX,
-                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
-                        );
-                        double returnStrafe = Range.clip(
-                                yError * TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_KP,
-                                -TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX,
-                                TeleOpMode_ballseekConfig.BALL_RETURN_TRANSLATION_MAX
-                        );
-                        double returnTurn = Range.clip(
-                                headingError * TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_KP,
-                                -TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX,
-                                TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_MAX
-                        );
-
-                        robot.drive.setTeleOpDrive(returnForward, returnStrafe, returnTurn);
-
-                        if (distanceError <= TeleOpMode_ballseekConfig.BALL_RETURN_ORIGIN_TOLERANCE_IN
-                                && headingErrorDeg <= TeleOpMode_ballseekConfig.BALL_RETURN_HEADING_TOLERANCE_DEG) {
-                            seekState = SeekState.DWELL_AT_LOCATION_A;
-                            deliverDwellTimer.reset();
-                            robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
+                        // Kill switch
+                        if (gamepad1.a && seekState == SeekState.RETURN_TO_LOCATION_A) {
+                            // Manual override: hand control back to the driver immediately.
+                            isSeekMode = false;
+                            seekState = SeekState.SEEK_BALL;
+                            isReturnToLocationAMode = false;
+                            autoForwardMode = false;
+                            forward = 0.0;
+                            turn = 0.0;
+                            intakeState = IntakeStates.OFF;
+                            resetBallTrackingState();
+                            robot.drive.stop();
+                            robot.drive.resumeTeleOpDrive();
                         }
-                    }
                 } else if (seekState == SeekState.DWELL_AT_LOCATION_A) {
                     robot.drive.setTeleOpDrive(0.0, 0.0, 0.0);
                     if (deliverDwellTimer.time() >= TeleOpMode_ballseekConfig.DELIVER_DWELL_SEC) {
