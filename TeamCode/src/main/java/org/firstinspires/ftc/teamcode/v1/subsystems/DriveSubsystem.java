@@ -103,6 +103,12 @@ public class DriveSubsystem {
         }
     }
 
+    public void setPose(Pose pose) {
+        if (follower != null) {
+            follower.setPose(pose);
+        }
+    }
+
     public void setMaxPower(double power){
         if (follower != null) {
             follower.setMaxPower(power);

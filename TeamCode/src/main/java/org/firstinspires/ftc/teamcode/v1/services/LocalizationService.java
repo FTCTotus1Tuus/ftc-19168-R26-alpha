@@ -102,15 +102,24 @@ public class LocalizationService {
      */
     public void resetToOrigin() {
         try {
+            // 1. Reset the pinpoint odometry position
             GoBildaPinpointDriver pinpoint = hardware.getPinpoint();
             if (pinpoint != null) {
-                pinpoint.resetPosAndIMU();
+                pinpoint.setPosition(new Pose2D(
+                        DistanceUnit.INCH,
+                        8.5,
+                        8.5,
+                        AngleUnit.DEGREES,
+                        0
+                ));
                 pinpoint.update();
             }
+            // 2. set pedropathing
             Pose origin = new Pose(8.5, 8.5, 0);
-            if (drive.isAvailable()) {
-                drive.setStartingPose(origin);
-            }
+            //if (drive.isAvailable()) {
+                drive.setPose(origin);
+
+            //}
             status = "Reset to origin (8.5, 8.5, 0°)";
             RobotLog.ii(TAG, "Pose reset to field origin");
         } catch (Throwable t) {

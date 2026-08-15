@@ -57,6 +57,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
     private double forward = 0;
     private double turn = 0;
+    private int backButtonState = 0;
     private enum SeekState {
         SEEK_BALL,
         RETURN_TO_LOCATION_A,
@@ -102,11 +103,33 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             robot.drive.update();
 
             // 3. Toggle field-centric on rising edge of back button.
+            /*
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
                 isFieldCentric = !isFieldCentric;
             }
             prevBackPressed = backPressed;
+
+             */
+
+            boolean backPressed = gamepad1.back;
+            if (backPressed && !prevBackPressed) {
+                backButtonState += 1;
+            }
+            prevBackPressed = backPressed;
+            if (backButtonState == 3) {
+                backButtonState = 0;
+            }
+
+            if (backButtonState == 0) {
+                isFieldCentric = false;
+            } if (backButtonState == 1) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = false;
+            } if (backButtonState == 2) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = true;
+            }
 
             // 3.2 Reset odometry to origin (0, 0, 0°) on rising edge of start button.
             boolean startPressed = gamepad1.start;
@@ -147,28 +170,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 }
             }
 
-            NormalizedColorSensor rightColorSensor = robot.hardware.getRightColorSensor();
-            NormalizedColorSensor leftColorSensor = robot.hardware.getLeftColorSensor();
-            if (rightColorSensor instanceof DistanceSensor && leftColorSensor instanceof DistanceSensor) {
-                double rightDistanceCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
-                double leftDistanceCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
-                telemetry.addData("Right Color Dist", "%.1f cm", rightDistanceCm);
-                telemetry.addData("Left Color Dist", "%.1f cm", leftDistanceCm);
 
-                isRawBallDetected = rightDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM
-                        || leftDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM;
-
-                if (isRawBallDetected) {
-                    if (!isBallDetectionCandidate) {
-                        isBallDetectionCandidate = true;
-                        ballDetectConfirmTimer.reset();
-                    }
-                    isBallDetected = ballDetectConfirmTimer.time() >= TeleOpMode_ballseekConfig.DETECT_CONFIRM_SEC;
-                } else {
-                    isBallDetectionCandidate = false;
-                    isBallDetected = false;
-                }
-            }
 
 
             // 4. Read input and drive.
@@ -178,6 +180,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
 
             // time based movement when ball ready (visible, centered, and close)
+            //todo remove isSeekMode
             if (isSeekMode && seekState == SeekState.SEEK_BALL) {
                 if (target.isVisible) {
                     ballVisibleTimer.reset();
@@ -235,32 +238,60 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         turn = 0.0;
                     }
                 }
+                //postintake ball detect - color sensor setup
+                NormalizedColorSensor rightColorSensor = robot.hardware.getRightColorSensor();
+                NormalizedColorSensor leftColorSensor = robot.hardware.getLeftColorSensor();
+                if (rightColorSensor instanceof DistanceSensor && leftColorSensor instanceof DistanceSensor) {
+                    double rightDistanceCm = ((DistanceSensor) rightColorSensor).getDistance(DistanceUnit.CM);
+                    double leftDistanceCm = ((DistanceSensor) leftColorSensor).getDistance(DistanceUnit.CM);
+                    telemetry.addData("Right Color Dist", "%.1f cm", rightDistanceCm);
+                    telemetry.addData("Left Color Dist", "%.1f cm", leftDistanceCm);
+
+                    isRawBallDetected = rightDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM
+                            || leftDistanceCm < TeleOpMode_ballseekConfig.DETECT_TRIGGER_CM;
+
+                    if (isRawBallDetected) {
+                        if (!isBallDetectionCandidate) {
+                            isBallDetectionCandidate = true;
+                            ballDetectConfirmTimer.reset();
+                        }
+                        isBallDetected = ballDetectConfirmTimer.time() >= TeleOpMode_ballseekConfig.DETECT_CONFIRM_SEC;
+                    } else {
+                        isBallDetectionCandidate = false;
+                        isBallDetected = false;
+                    }
+                }
+
+                // Transition: ball collected → start the return path ONCE, at this edge.
+                // followPath() must not be re-issued every loop — restarting the path each
+                // pass resets the follower's progress and the robot never actually drives.
+                if (isBallDetected) {
+                    Pose pathStartPose = robot.drive.getPose();
+                    if (pathStartPose != null) {
+                        PathChain parkPath = robot.drive.pathBuilder()
+                                .addPath(new BezierLine(
+                                        new Pose(pathStartPose.getX(), pathStartPose.getY()),
+                                        new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
+                                ))
+                                .setLinearHeadingInterpolation(pathStartPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
+                                .build();
+                        // holdEnd=false so isFollowing() goes false on arrival (matches AutonomousBase usage);
+                        // with holdEnd=true the follower can report busy forever and DWELL is never reached.
+                        robot.drive.setMaxPower(0.5);
+                        robot.drive.followPath(parkPath, false);
+                        seekState = SeekState.RETURN_TO_LOCATION_A;
+                        isReturnToLocationAMode = true;
+                        autoForwardMode = false;
+                        forward = 0.0;
+                        turn = 0.0;
+                    }
+                    // If pose is unavailable, stay in SEEK_BALL — no path without localization.
+                }
+
             }
 
-            // Transition: ball collected → start the return path ONCE, at this edge.
-            // followPath() must not be re-issued every loop — restarting the path each
-            // pass resets the follower's progress and the robot never actually drives.
-            if (isSeekMode && seekState == SeekState.SEEK_BALL && isBallDetected) {
-                Pose pathStartPose = robot.drive.getPose();
-                if (pathStartPose != null) {
-                    PathChain parkPath = robot.drive.pathBuilder()
-                            .addPath(new BezierLine(
-                                    new Pose(pathStartPose.getX(), pathStartPose.getY()),
-                                    new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
-                            ))
-                            .setLinearHeadingInterpolation(pathStartPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
-                            .build();
-                    // holdEnd=false so isFollowing() goes false on arrival (matches AutonomousBase usage);
-                    // with holdEnd=true the follower can report busy forever and DWELL is never reached.
-                    robot.drive.followPath(parkPath, false);
-                    seekState = SeekState.RETURN_TO_LOCATION_A;
-                    isReturnToLocationAMode = true;
-                    autoForwardMode = false;
-                    forward = 0.0;
-                    turn = 0.0;
-                }
-                // If pose is unavailable, stay in SEEK_BALL — no path without localization.
-            }
+
+
 
             if (!isSeekMode)  {
                 applyTeleOpDrive(
@@ -290,7 +321,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             }
             else {
                 if (seekState == SeekState.SEEK_BALL) {
-                    robot.drive.setTeleOpDrive(-forward, 0.0, turn);
+                    robot.drive.setTeleOpDrive(forward, 0.0, -turn);
                 } else if (seekState == SeekState.RETURN_TO_LOCATION_A) {
                     // Path was started once at the detection transition. The per-loop
                     // robot.drive.update() at the top of the loop drives it — issue NO
@@ -339,6 +370,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE ? "RED" : "BLUE",
                     Math.toDegrees(allianceOffsetRad)
             );
+            telemetry.addData("backButtonState", backButtonState);
             telemetry.addData("Centered", prevBallWasCentered);
             telemetry.addData("Close", prevBallWasClose);
             telemetry.addData("AutoForward", autoForwardMode);
@@ -433,9 +465,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 : (magnitude - deadzone) / (1.0 - deadzone);
         // Convert the scaled magnitude back into X/Y components by keeping the same
         // direction, then shrinking or growing the vector with translationScale.
-        double rawY = (translationScale == 0) ? 0 : (leftStickY / magnitude) * translationScale;
-        double rawX = (translationScale == 0) ? 0 : (leftStickX / magnitude) * translationScale;
-        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
+        double rawY = (translationScale == 0) ? 0 : (-leftStickY / magnitude) * translationScale;
+        double rawX = (translationScale == 0) ? 0 : (-leftStickX / magnitude) * translationScale;
+        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
         double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponent);

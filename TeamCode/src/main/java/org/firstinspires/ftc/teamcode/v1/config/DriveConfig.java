@@ -21,8 +21,8 @@ public final class DriveConfig {
     public static double POSE_RESET_ROBOT_CENTER_OFFSET_Y = 8.25;
 
     // TELEOP_*: driver control shaping.
-    public static double TELEOP_ROTATION_SCALE = 0.7;
-    public static double TELEOP_SPEED_SCALE = 0.5;
+    public static double TELEOP_ROTATION_SCALE = 0.5;
+    public static double TELEOP_SPEED_SCALE = 0.3;
     public static double TELEOP_SPEED_SCALE_TURN = 0.9;
     public static double TELEOP_INPUT_EXPONENT = 3.0;
     public static double TELEOP_DRIVE_DEADZONE = 0.1;
@@ -59,5 +59,5 @@ public final class DriveConfig {
      * Max RPM fraction applied to both front motors.
      * 0.75 matches a front drivetrain that is ~4/3 faster than the rear drivetrain.
      */
-    public static double GEAR_COMP_FRONT_WHEEL_MAX_RPM_FRACTION = 0.75;
+    public static double GEAR_COMP_FRONT_WHEEL_MAX_RPM_FRACTION = 1.15;
 }

@@ -18,6 +18,7 @@ public class TeleOpMode extends RobotOpMode {
     private boolean isFieldCentric = false;
     private boolean prevBackPressed = false;
     private boolean prevStartPressed = false;
+    private int backButtonState = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -48,11 +49,32 @@ public class TeleOpMode extends RobotOpMode {
             robot.drive.update();
 
             // 3. Toggle field-centric on rising edge of back button.
+            /*
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
                 isFieldCentric = !isFieldCentric;
             }
             prevBackPressed = backPressed;
+             */
+
+            boolean backPressed = gamepad1.back;
+            if (backPressed && !prevBackPressed) {
+                backButtonState += 1;
+            }
+            prevBackPressed = backPressed;
+            if (backButtonState == 3) {
+                backButtonState = 0;
+            }
+
+            if (backButtonState == 0) {
+                isFieldCentric = false;
+            } if (backButtonState == 1) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = false;
+            } if (backButtonState == 2) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = true;
+            }
 
             // 3.2 Reset odometry to origin (0, 0, 0°) on rising edge of start button.
             boolean startPressed = gamepad1.start;
@@ -97,6 +119,7 @@ public class TeleOpMode extends RobotOpMode {
                     DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE ? "RED" : "BLUE",
                     Math.toDegrees(allianceOffsetRad)
             );
+            telemetry.addData("Button State", backButtonState);
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
