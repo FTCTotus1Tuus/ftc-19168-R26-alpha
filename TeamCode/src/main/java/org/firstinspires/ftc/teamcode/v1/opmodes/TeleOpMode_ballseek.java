@@ -300,7 +300,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
                         gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
                         DriveConfig.TELEOP_DRIVE_DEADZONE,
-                        DriveConfig.TELEOP_INPUT_EXPONENT,
+                        DriveConfig.TELEOP_INPUT_EXPONENT_FORWARD,
+                        DriveConfig.TELEOP_INPUT_EXPONENT_STRAFE,
                         DriveConfig.TELEOP_SPEED_SCALE,
                         DriveConfig.TELEOP_SPEED_SCALE_TURN,
                         DriveConfig.TELEOP_ROTATION_SCALE,
@@ -434,7 +435,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             double rightStickX,
             double rightTrigger,
             double deadzone,
-            double inputExponent,
+            double inputExponentForward,
+            double inputExponentStrafe,
             double speedScale,
             double speedScaleTurn,
             double rotationScale,
@@ -470,9 +472,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
-        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponent);
-        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponent);
-        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponent);
+        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentStrafe);
+        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentForward);
+        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponentForward);
 
         // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
         double driveScale = (rawR != 0) ? speedScaleTurn : speedScale;
