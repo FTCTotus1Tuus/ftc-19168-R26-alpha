@@ -173,9 +173,9 @@ public class TeleOpMode extends RobotOpMode {
                 : (magnitude - deadzone) / (1.0 - deadzone);
         // Convert the scaled magnitude back into X/Y components by keeping the same
         // direction, then shrinking or growing the vector with translationScale.
-        double rawY = (translationScale == 0) ? 0 : (leftStickY / magnitude) * translationScale;
-        double rawX = (translationScale == 0) ? 0 : (leftStickX / magnitude) * translationScale;
-        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
+        double rawY = (translationScale == 0) ? 0 : (-leftStickY / magnitude) * translationScale;
+        double rawX = (translationScale == 0) ? 0 : (-leftStickX / magnitude) * translationScale;
+        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
         // The exponent is applied to the stick's TOTAL push (translationScale), then the
