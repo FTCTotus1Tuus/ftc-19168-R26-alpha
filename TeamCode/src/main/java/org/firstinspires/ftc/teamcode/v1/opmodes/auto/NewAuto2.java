@@ -120,6 +120,10 @@ public class NewAuto2 extends AutonomousBase {
         buildPath();
         seedLocalizationToPlannedStart();
 
+        pathTimer = new Timer();
+        opmodeTimer = new Timer();
+        opmodeTimer.resetTimer();
+
         while (opModeInInit() && !isStopRequested()) {
             robot.hardware.clearBulkCache();
             seedLocalizationToPlannedStart();
