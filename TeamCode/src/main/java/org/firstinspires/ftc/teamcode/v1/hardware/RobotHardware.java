@@ -29,6 +29,7 @@ public class RobotHardware {
     private GoBildaPinpointDriver pinpoint;
     private WebcamName webcam;
     private DcMotorEx intakeFront;
+    private DcMotorEx pollenLauncher;
     private NormalizedColorSensor leftColorSensor;
     private NormalizedColorSensor rightColorSensor;
 
@@ -77,6 +78,9 @@ public class RobotHardware {
         //   liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         intakeFront = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.INTAKE_FRONT);
         intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        pollenLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.POLLEN_LAUNCHER);
+        pollenLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         leftColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.LEFT_COLOR_SENSOR);
         rightColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.RIGHT_COLOR_SENSOR);
@@ -143,6 +147,9 @@ public class RobotHardware {
     }
     public DcMotorEx getIntakeFront() {
         return intakeFront;
+    }
+    public DcMotorEx getPollenLauncher() {
+        return pollenLauncher;
     }
     public NormalizedColorSensor getLeftColorSensor() {
         return leftColorSensor;

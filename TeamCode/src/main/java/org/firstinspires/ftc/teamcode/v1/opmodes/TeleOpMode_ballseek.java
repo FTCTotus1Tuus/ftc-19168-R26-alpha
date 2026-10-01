@@ -13,7 +13,9 @@ import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.robotcore.external.navigation.DistanceUnit;
+import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
 /**
@@ -34,8 +36,11 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private boolean prevAButtonPressed = false;
 
     private enum IntakeStates {OFF, IN, OUT};
-
+    private enum ShootingStatesPollen {OFF, SHOOT};
+    private enum ShootingStatesNectar {OFF, SHOOT};
     private IntakeStates intakeState = IntakeStates.OFF;
+    private ShootingStatesPollen shootingStatesPollen = ShootingStatesPollen.OFF;
+    private ShootingStatesNectar shootingStatesNectar = ShootingStatesNectar.OFF;
     private boolean prevLeftBumperPressed = false;
 
     private boolean prevBallWasCentered = false;
@@ -168,6 +173,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     intakeState = IntakeStates.OFF;
 
                 }
+            }
+
+            if (gamepad2.left_trigger > 0.5) {
+                shootingStatesPollen = ShootingStatesPollen.SHOOT;
+                //shootingStates = ShootingStates.SHOOT_NECTAR;
+            } else {
+                shootingStatesPollen = ShootingStatesPollen.OFF;
             }
 
 
@@ -317,6 +329,12 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     robot.intake.stop();
                 } else if (intakeState == IntakeStates.IN) {
                     robot.intake.start();
+                }
+
+                if (shootingStatesPollen == ShootingStatesPollen.OFF) {
+                    robot.shooting.stop();
+                } else if (shootingStatesPollen == ShootingStatesPollen.SHOOT) {
+                    robot.shooting.startPollenShooter();
                 }
 
             }
