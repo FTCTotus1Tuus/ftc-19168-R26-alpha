@@ -24,8 +24,10 @@ public final class DriveConfig {
     public static double TELEOP_ROTATION_SCALE = 0.7;
     public static double TELEOP_SPEED_SCALE = 0.7;
     public static double TELEOP_SPEED_SCALE_TURN = 0.5;
-    public static double TELEOP_INPUT_EXPONENT_FORWARD = 3.0;
-    public static double TELEOP_INPUT_EXPONENT_STRAFE = 1.5;
+    // Applied to the stick's TOTAL push (its magnitude), not to each axis — so every
+    // direction gets the same pedal curve and diagonals are not crushed or bent.
+    // Dashboard-tunable: 1.0 = linear, 2.0 = mild curve, 3.0 = soft center (default).
+    public static double TELEOP_INPUT_EXPONENT = 3.0;
     public static double TELEOP_DRIVE_DEADZONE = 0.1;
 
     /**

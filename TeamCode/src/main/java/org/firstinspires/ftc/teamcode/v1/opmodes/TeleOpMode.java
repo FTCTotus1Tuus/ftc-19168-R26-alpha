@@ -90,8 +90,7 @@ public class TeleOpMode extends RobotOpMode {
                     gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
                     gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
                     DriveConfig.TELEOP_DRIVE_DEADZONE,
-                    DriveConfig.TELEOP_INPUT_EXPONENT_FORWARD,
-                    DriveConfig.TELEOP_INPUT_EXPONENT_STRAFE,
+                    DriveConfig.TELEOP_INPUT_EXPONENT,
                     DriveConfig.TELEOP_SPEED_SCALE,
                     DriveConfig.TELEOP_SPEED_SCALE_TURN,
                     DriveConfig.TELEOP_ROTATION_SCALE,
@@ -143,8 +142,7 @@ public class TeleOpMode extends RobotOpMode {
             double rightStickX,
             double rightTrigger,
             double deadzone,
-            double inputExponentForward,
-            double inputExponentStrafe,
+            double inputExponent,
             double speedScale,
             double speedScaleTurn,
             double rotationScale,
@@ -175,14 +173,22 @@ public class TeleOpMode extends RobotOpMode {
                 : (magnitude - deadzone) / (1.0 - deadzone);
         // Convert the scaled magnitude back into X/Y components by keeping the same
         // direction, then shrinking or growing the vector with translationScale.
-        double rawY = (translationScale == 0) ? 0 : (leftStickY / magnitude) * translationScale;
-        double rawX = (translationScale == 0) ? 0 : (leftStickX / magnitude) * translationScale;
-        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
+        double rawY = (translationScale == 0) ? 0 : (-leftStickY / magnitude) * translationScale;
+        double rawX = (translationScale == 0) ? 0 : (-leftStickX / magnitude) * translationScale;
+        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
-        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentStrafe);
-        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentForward);
-        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponentForward);
+        // The exponent is applied to the stick's TOTAL push (translationScale), then the
+        // result is pointed back along the stick's original direction (raw ÷ translationScale
+        // is the pure direction fraction). Shaping each axis separately crushes diagonals —
+        // the push splits into two smaller numbers BEFORE the exponent, and aⁿ + bⁿ is far
+        // smaller than (a+b)ⁿ — and unequal per-axis exponents bend the driver's angle toward
+        // the softer axis. Magnitude shaping gives every direction the same pedal curve.
+        // Turn is a single axis, so per-axis shaping remains correct there.
+        double shapedMagnitude = Math.pow(translationScale, inputExponent);
+        double shapedY = (translationScale == 0) ? 0 : (rawY / translationScale) * shapedMagnitude;
+        double shapedX = (translationScale == 0) ? 0 : (rawX / translationScale) * shapedMagnitude;
+        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponent);
 
         // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
         double driveScale = (rawR != 0) ? speedScaleTurn : speedScale;
