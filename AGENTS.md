@@ -1,85 +1,113 @@
-# AGENTS.md – AI Coding Agent Guide
-*Last updated: June 2, 2026 — revisit when new subsystems or libraries are added.*
+# AGENTS.md — FTC Team 19168 (DECODE 2025-26 season)
 
-## Project Overview
-FTC Team 19168 robot controller app for the DECODE (2025-2026) season. Runs on Android (minSdk 24, compileSdk 35, Java 1.8 source/target). Built with **Gradle** in Android Studio Ladybug (2024.2+).
+Canonical context for AI coding tools. Claude Code reads this via the `@AGENTS.md` import
+in `CLAUDE.md`; GitHub Copilot reads it directly (see also `.github/copilot-instructions.md`).
+**Edit this file, not CLAUDE.md.**
 
-Two modules:
-- `FtcRobotController/` – upstream FTC SDK (**do not edit**)
-- `TeamCode/` – all team code under `org.firstinspires.ftc.teamcode`
+FTC robot code. FTC SDK 11.1, Pedro Pathing 2.1.2, FtcDashboard 0.6.0. Runs on a REV
+Control Hub (Android); deployed from Android Studio over USB. All team code lives in
+`TeamCode/src/main/java/org/firstinspires/ftc/teamcode/v1/` — the versioned package is
+deliberate; don't create code outside `v1/` without discussion.
 
-## Current State
-Skeleton robot with full architecture in place — these files exist today:
+## Build & deploy
 
-**Root package** (`org.firstinspires.ftc.teamcode`):
-- `docs/ROBOT_ARCHITECTURE_GUIDE.md` – team architecture, patterns, and conventions
+- Android Studio project; the team module is `TeamCode`.
+- Build variant: use **`standardDebug`** (the `panelsTuning` flavor swaps FtcDashboard
+  for the Panels tuning UI — don't switch variants casually).
+- `./gradlew :TeamCode:assembleDebug` builds the debug APK; deploy via the Android
+  Studio Run button (ADB over USB to the Control Hub).
+- Code cannot run on a laptop. The only laptop-verifiable code is pure-Java logic with
+  unit tests. Everything else is verified on the robot — treat "compiles" as the start,
+  not the end.
 
-**`v1/` package** (active architecture):
-- `v1/hardware/RobotHardwareNames.java` – canonical hardware config string constants
-- `v1/services/PedroPathingConstants.java` – Pedro Pathing follower builder + runtime motor-name resolution
-- `v1/testing/PedroTeleOp.java` – original flat TeleOp, kept as diagnostic reference (`@Disabled`)
-- `v1/hardware/RobotHardware.java` – bulk caching setup; maps all non-Pedro devices
-- `v1/subsystems/DriveSubsystem.java` – wraps Pedro Pathing `Follower`; exposes `setTeleOpDrive()`, `getPose()`
-- `v1/core/RobotContainer.java` – composition root; owns all subsystems
-- `v1/opmodes/RobotOpMode.java` – thin `LinearOpMode` base class
-- `v1/opmodes/TeleOpMode.java` – active driver-control OpMode
+## Package layout
 
-## Architecture
-See the full guide for class hierarchy, package layout, code templates, startup flow, and how to add subsystems:
+| Package | Contents | Rule |
+|---|---|---|
+| `v1/opmodes/` | TeleOp + auto OpModes | Read gamepads, call subsystems. Never touch motors. |
+| `v1/core/` | `RobotContainer` | Composition root; OpModes access everything as `robot.*` |
+| `v1/subsystems/` | `DriveSubsystem`, `IntakeSubsystem` | One mechanism each; get devices from `RobotHardware` |
+| `v1/hardware/` | `RobotHardware`, `RobotHardwareNames` | **The only place `hardwareMap.get()` is allowed** |
+| `v1/services/` | Vision, localization, preferences, Pedro factory | Non-mechanism capabilities |
+| `v1/config/` | `@Config` constant classes | All tunable numbers. No logic. |
+| `v1/testing/` | Pedro tuning suite, diagnostics | Not match code |
 
-> `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md`
+When this file and `docs/ROBOT_ARCHITECTURE_GUIDE.md` overlap, the architecture guide is
+the source of truth for package boundaries, config ownership, and lifecycle structure.
 
-When this file and the architecture guide overlap, treat the architecture guide as the source of truth for package boundaries, config ownership, and lifecycle structure.
+## Hard rules
 
-## Hardware Device Names
-Names must exactly match the robot config file. Canonical names live in `v1/hardware/RobotHardwareNames.java`:
-```java
-"rightFront", "rightRear", "leftRear", "leftFront"      // drive motors — exact camelCase names
-"pinpoint"                                               // GoBilda Pinpoint I2C device
-```
+1. **Hardware access:** only `RobotHardware` calls `hardwareMap.get()`. Device names are
+   constants in `RobotHardwareNames` — never string literals elsewhere. Names must match
+   the Driver Station robot configuration exactly.
+2. **No magic numbers in logic.** Every tunable lives in a `v1/config/` class as a
+   `public static` (non-final) field, annotated `@Config` so it's live-tunable from
+   FtcDashboard (`192.168.43.1:8080/dash`). Dashboard edits don't persist — tuned values
+   must be typed back into the config file and committed.
+3. **Fail-safe init.** Missing hardware must never crash an OpMode. Wrap lookups
+   (see `RobotHardware.tryGetMotor`), null-guard usage, degrade gracefully. A robot
+   missing a part can still play a match; a robot that throws at INIT forfeits.
+4. **Loop discipline.** `robot.hardware.clearBulkCache()` is the first call in every
+   loop iteration (hubs are in MANUAL bulk-cache mode — forgetting this freezes all
+   sensor reads). The Pedro follower's `update()` must run exactly once per loop.
+5. **Buttons:** anything that should fire once per press uses the rising-edge pattern
+   (`pressed && !prevPressed`, with `prev` updated after — see the `A`/`back` handling
+   in the TeleOps). Never act on button level for toggles.
+6. **Timing:** `ElapsedTime` checked per-loop plus a boolean flag. Never `Thread.sleep`
+   or blocking waits inside an OpMode loop.
+7. **State machines** for multi-step behavior — see the FSM template in
+   `docs/ROBOT_ARCHITECTURE_GUIDE.md`.
 
-## OpMode Registration
-Remove `@Disabled` to make an OpMode appear on the Driver Station:
-```java
-@TeleOp(name = "TeleOp", group = "DriverControl")
-// @Disabled  ← delete this line to activate
-```
+## Conventions
 
-## Key Dependencies (`build.dependencies.gradle`)
-- `com.pedropathing:ftc:2.1.2` — path following + TeleOp drive (`maven { url = 'https://maven.brott.dev/' }`)
-- `GoBildaPinpointDriver` — bundled in FTC SDK 10.3+; no extra Gradle dependency needed
-- FTC SDK 11.1.0 (`org.firstinspires.ftc:*`)
-- `com.acmerobotics.dashboard:dashboard:0.6.0` — FtcDashboard live tuning UI (`maven { url = "https://maven.brott.dev/" }`)
+- Config fields use uppercase `<GROUP>_*` prefixes (`TELEOP_*`, `PINPOINT_*`, `BALL_*`)
+  so related values stay grouped in FtcDashboard's flat field list. One config class per
+  concern; a feature with many tunables gets its own `*Config` class.
+- Booleans use `is` / `has` / `should` prefixes (`isFieldCentric`, `isRedAlliance`).
+- Native SDK patterns only — no third-party control/hardware-optimization libraries
+  beyond Pedro Pathing and FtcDashboard (see `ROBOT_ARCHITECTURE_GUIDE.md` §14).
+- Versioning: each physical robot version gets its own top-level package (`v1/`, `v2/`).
+  Driver Station clarity comes from OpMode annotations (`V1 TeleOp`, group `v1`), not
+  package names. Unfinished OpModes stay `@Disabled` until field-tested.
+- Commit messages: when asked for one, return title and body in a single
+  copy/paste-ready block.
 
-**Note:** This team uses only native FTC SDK patterns for performance (bulk caching via `LynxModule.BulkCachingMode.MANUAL`) and control (custom PIDF calculator + @Config). No third-party control or hardware-optimization libraries — see `ROBOT_ARCHITECTURE_GUIDE.md` §14.
+## Agent behavior
 
-## Agent Behavior Rules
-- **Ask clarifying questions before making big assumptions or going down rabbit holes.** If a request is ambiguous or could be interpreted multiple ways, ask first.
+- Ask clarifying questions before making big assumptions or going down rabbit holes.
+  If a request is ambiguous, ask first.
+- Any change to drive feel, gains, or vision thresholds needs a robot test before it
+  counts as done. Say so explicitly when delivering such changes untested.
 
-## Config Naming Convention
-- Keep dashboard-tunable constants in `v1/config/*Config.java`, not in subsystem/service classes.
-- Use uppercase `<GROUP>_*` prefixes for dashboard fields (for example, `TELEOP_*`, `PINPOINT_*`, `PATH_*`) so related values stay grouped in FTC Dashboard's flat field list.
-- Keep one config class per concern; if a new feature has many tunables, create a dedicated `*Config` class.
-- Prefer Java boolean naming with `is` / `has` / `should` prefixes for boolean variables and fields (for example, `isFieldCentric`, `isRedAlliance`).
-- For full rationale and examples, follow `TeamCode/src/main/java/org/firstinspires/ftc/teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md` §7 and §14.1.
+## Sharp edges (true today — verify before relying on; delete entries as they get fixed)
 
-## Commit Message Output Convention
-- When the user asks for a commit message, return the commit title and body in **one single copy/paste-ready text block**.
-- Do not split title/body across multiple disconnected blocks unless the user explicitly asks for alternatives.
+- `applyTeleOpDrive(...)` is **duplicated verbatim** in `TeleOpMode` and
+  `TeleOpMode_ballseek`. Any change to one must be made in both until it's unified.
+- Turn is **double-scaled**: OpModes multiply by `TELEOP_ROTATION_SCALE` and
+  `DriveSubsystem.setTeleOpDrive` multiplies by it again. All current tuning (driver
+  feel + ball-seek gains) was done on top of this. Do NOT remove one multiply as a
+  drive-by cleanup — it changes robot behavior ~43% and requires a field retune
+  (ball-seek turn values × 0.7 to preserve behavior).
+- `TeleOpMode_ballseekConfig` is missing `@Config` (only config class without it).
+- Camera resolution exists in two places: hardcoded `Size(320, 240)` in
+  `VisionService` and `VisionConfig.BALL_CAMERA_WIDTH_PX`. They must agree or
+  `normalizedXError` silently skews. 320×240 is deliberate (better low-light blob
+  detection) — don't raise it without testing.
+- Drive motor directions are set in `PedroPathingConstants` (Pedro), not
+  `RobotHardware`. Those two files must stay consistent.
 
-## Versioning Rules
-- Keep each physical robot version in its own top-level package: `v1/`, `v2/`, etc.
-- Keep hardware-bound code version-specific (`RobotHardwareNames`, `RobotHardware`, robot-specific subsystem implementations, robot-specific constants).
-- Only move code to a shared `common/` package when it is proven robot-agnostic and used by both versions.
-- Do not split into separate repositories for the same season unless versions are operationally independent and share little or no code.
-- For Driver Station clarity, rely on OpMode annotations (not Java package names):
-  - use explicit names like `V1 TeleOp`, `V2 TeleOp`, `V1 Left Auto`
-  - use explicit groups like `v1`, `v2`, `Auto-v1`, `Auto-v2`
-- Keep unfinished or risky version branches disabled with `@Disabled` until they are field-tested.
+## Verification reality
 
-## Build & Deploy
-```bash
-./gradlew :TeamCode:assembleDebug   # build debug APK from project root
-# Deploy via Android Studio Run button (ADB to Control Hub or phone)
-# No unit tests — all validation is done on physical hardware
-```
+- Telemetry is the debugger — there are no breakpoints on a moving robot.
+- FtcDashboard streams the camera with vision overlays; use it to verify blob detection.
+
+## Git
+
+- Branch per change; PR to `FTCTotus1Tuus/ftc-19168-R26-alpha` `main`; never push
+  `main` directly. PRs get human review before merge.
+
+## Onboarding docs
+
+`teamcode/docs/START_HERE.md` (concepts, analogies) →
+`teamcode/docs/NEW_MEMBER_GUIDE.md` (code tour) →
+`teamcode/docs/ROBOT_ARCHITECTURE_GUIDE.md` (full rulebook).
