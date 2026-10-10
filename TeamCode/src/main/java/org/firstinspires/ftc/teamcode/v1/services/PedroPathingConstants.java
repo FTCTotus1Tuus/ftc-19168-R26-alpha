@@ -49,10 +49,10 @@ public final class PedroPathingConstants {
                 .rightRearMotorName(RobotHardwareNames.RIGHT_REAR_MOTOR)
                 .leftRearMotorName(RobotHardwareNames.LEFT_REAR_MOTOR)
                 .leftFrontMotorName(RobotHardwareNames.LEFT_FRONT_MOTOR)
-                .leftFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
-                .leftRearMotorDirection(DcMotorSimple.Direction.FORWARD)
-                .rightFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
-                .rightRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+                .leftFrontMotorDirection(DcMotorSimple.Direction.REVERSE)
+                .leftRearMotorDirection(DcMotorSimple.Direction.REVERSE)
+                .rightFrontMotorDirection(DcMotorSimple.Direction.FORWARD)
+                .rightRearMotorDirection(DcMotorSimple.Direction.FORWARD)
                 .xVelocity(PedroPathingConfig.DRIVE_X_VELOCITY)
                 .yVelocity(PedroPathingConfig.DRIVE_Y_VELOCITY);
 

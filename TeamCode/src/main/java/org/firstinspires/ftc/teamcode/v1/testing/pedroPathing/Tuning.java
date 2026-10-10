@@ -91,7 +91,6 @@ public class Tuning extends SelectableOpMode {
         follower.setStartingPose(new Pose());
         poseHistory = follower.getPoseHistory();
         telemetryM = new TuningTelemetry(telemetry);
-        PanelsBridge.refreshConfigurablesIfEnabled(this);
     }
 
     @Override
@@ -1738,7 +1737,6 @@ class Drawing {
 class TuningTelemetry {
     private final Telemetry telemetry;
     private final List<String> pendingLines = new ArrayList<>();
-    private final Object panelsTelemetry;
     private final String runtimeBanner;
     private static final String DRAWING_BANNER = "Drawing: disabled in this safe tuning build.";
     private final String driveMapBanner;
@@ -1746,14 +1744,7 @@ class TuningTelemetry {
 
     TuningTelemetry(Telemetry telemetry) {
         this.telemetry = telemetry;
-        this.panelsTelemetry = PanelsBridge.createPanelsTelemetryIfEnabled();
-        if (BuildConfig.PANELS_TUNING_ENABLED) {
-            this.runtimeBanner = (panelsTelemetry != null)
-                    ? "Tuning UI: panelsTuning (Panels active)"
-                    : "Tuning UI: panelsTuning (Panels unavailable, DS fallback)";
-        } else {
-            this.runtimeBanner = "Tuning UI: standard (Driver Station telemetry)";
-        }
+        this.runtimeBanner = "Tuning UI: standard (Driver Station telemetry)";
         this.driveMapBanner = "Drive map LF=" + RobotHardwareNames.LEFT_FRONT_MOTOR
                 + " LR=" + RobotHardwareNames.LEFT_REAR_MOTOR
                 + " RF=" + RobotHardwareNames.RIGHT_FRONT_MOTOR
@@ -1761,33 +1752,23 @@ class TuningTelemetry {
         this.driveLimitsBanner = "Drive limits maxPower=" + PedroPathingConfig.DRIVE_MAX_POWER
                 + " xVel=" + PedroPathingConfig.DRIVE_X_VELOCITY
                 + " yVel=" + PedroPathingConfig.DRIVE_Y_VELOCITY;
-
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{runtimeBanner});
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{DRAWING_BANNER});
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{driveMapBanner});
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{driveLimitsBanner});
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "update", new Class<?>[]{}, new Object[]{});
     }
 
     public void debug(String message) {
         pendingLines.add(message);
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "debug", new Class<?>[]{String[].class}, new Object[]{new String[]{message}});
     }
 
     public void debug(String caption, Object value) {
         String message = caption + ": " + String.valueOf(value);
         pendingLines.add(message);
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "debug", new Class<?>[]{String[].class}, new Object[]{new String[]{message}});
     }
 
     public void addData(String caption, Object value) {
         pendingLines.add(caption + ": " + String.valueOf(value));
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addData", new Class<?>[]{String.class, Object.class}, new Object[]{caption, value});
     }
 
     public void addLine(String line) {
         pendingLines.add(line);
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "addLine", new Class<?>[]{String.class}, new Object[]{line});
     }
 
     public void update(Telemetry ignoredTelemetry) {
@@ -1806,56 +1787,7 @@ class TuningTelemetry {
             }
             telemetry.update();
         }
-        PanelsBridge.invokeIfPresent(panelsTelemetry, "update", new Class<?>[]{}, new Object[]{});
         pendingLines.clear();
-    }
-}
-
-class PanelsBridge {
-    private static boolean startupWarningLogged;
-
-    private PanelsBridge() {
-    }
-
-    public static void refreshConfigurablesIfEnabled(Object target) {
-        if (!BuildConfig.PANELS_TUNING_ENABLED || target == null) {
-            return;
-        }
-        try {
-            Class<?> configurablesClass = Class.forName("com.bylazar.configurables.PanelsConfigurables");
-            Object instance = configurablesClass.getField("INSTANCE").get(null);
-            configurablesClass.getMethod("refreshClass", Object.class).invoke(instance, target);
-        } catch (Exception ignored) {
-            // Keep tuning functional even if the optional Panels runtime fails.
-        }
-    }
-
-    public static Object createPanelsTelemetryIfEnabled() {
-        if (!BuildConfig.PANELS_TUNING_ENABLED) {
-            return null;
-        }
-        try {
-            Class<?> panelsTelemetryClass = Class.forName("com.bylazar.telemetry.PanelsTelemetry");
-            Object instance = panelsTelemetryClass.getField("INSTANCE").get(null);
-            return panelsTelemetryClass.getMethod("getTelemetry").invoke(instance);
-        } catch (Exception ignored) {
-            if (!startupWarningLogged) {
-                startupWarningLogged = true;
-                System.out.println("PANELS: PanelsTelemetry unavailable, falling back to Driver Station telemetry.");
-            }
-            return null;
-        }
-    }
-
-    public static void invokeIfPresent(Object target, String methodName, Class<?>[] argTypes, Object[] args) {
-        if (target == null) {
-            return;
-        }
-        try {
-            target.getClass().getMethod(methodName, argTypes).invoke(target, args);
-        } catch (Exception ignored) {
-            // Optional bridge call failed; keep OpMode running with DS telemetry.
-        }
     }
 }
 

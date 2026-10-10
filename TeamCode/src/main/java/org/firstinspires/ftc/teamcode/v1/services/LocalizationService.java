@@ -90,6 +90,44 @@ public class LocalizationService {
         }
     }
 
+    /**
+     * Resets the robot's tracked pose to the field origin (0 in, 0 in, 0°).
+     *
+     * <p>Call this at the start of a TeleOp OpMode (after {@code initRobot()}, before
+     * {@code waitForStart()}) so the robot always begins tracking from a known reference
+     * point regardless of any pose that was saved during Autonomous.
+     *
+     * <p>If the Pinpoint is available it is also reset so its internal odometer
+     * and IMU both restart from zero, keeping the hardware and software in sync.
+     */
+    public void resetToOrigin() {
+        try {
+            // 1. Reset the pinpoint odometry position
+            GoBildaPinpointDriver pinpoint = hardware.getPinpoint();
+            if (pinpoint != null) {
+                pinpoint.setPosition(new Pose2D(
+                        DistanceUnit.INCH,
+                        8.5,
+                        8.5,
+                        AngleUnit.DEGREES,
+                        0
+                ));
+                pinpoint.update();
+            }
+            // 2. set pedropathing
+            Pose origin = new Pose(8.5, 8.5, 0);
+            //if (drive.isAvailable()) {
+                drive.setPose(origin);
+
+            //}
+            status = "Reset to origin (8.5, 8.5, 0°)";
+            RobotLog.ii(TAG, "Pose reset to field origin");
+        } catch (Throwable t) {
+            RobotLog.ee(TAG, t, "resetToOrigin failed; pose may be stale");
+            status = "resetToOrigin failed: " + t.getMessage();
+        }
+    }
+
     public boolean isUsingPinpoint() {
         return usingPinpoint;
     }

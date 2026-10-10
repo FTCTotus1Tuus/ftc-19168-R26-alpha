@@ -53,6 +53,17 @@ public class DriveSubsystem {
         }
     }
 
+    /**
+     * Re-enters TeleOp drive mode after autonomous path following completes.
+     * Call once when switching back from a followPath() sequence so that
+     * setTeleOpDrive() inputs are accepted again.
+     */
+    public void resumeTeleOpDrive() {
+        if (follower != null) {
+            follower.startTeleopDrive(true);
+        }
+    }
+
     /** Stops the follower and halts all drive motors. */
     public void stop() {
         if (follower != null) {
@@ -63,7 +74,9 @@ public class DriveSubsystem {
     // ── TeleOp ───────────────────────────────────────────────────────────────────────────────────
 
     /**
-     * Drives the robot using robot-centric mecanum control. Call once per loop in TeleOp.
+     * Queues robot-centric mecanum drive targets for the next follower update.
+     * Does NOT advance the control loop — call {@link #update()} once per loop to tick
+     * the localizer and apply the queued motor powers.
      *
      * @param forward  left_stick_y  — negative when stick is pushed up (FTC SDK convention)
      * @param strafe   left_stick_x  — positive when stick is pushed right
@@ -72,7 +85,6 @@ public class DriveSubsystem {
     public void setTeleOpDrive(double forward, double strafe, double turn) {
         if (follower != null) {
             follower.setTeleOpDrive(forward, strafe, turn * DriveConfig.TELEOP_ROTATION_SCALE, true);
-            follower.update();
         }
     }
 
@@ -88,6 +100,18 @@ public class DriveSubsystem {
     public void setStartingPose(Pose pose) {
         if (follower != null) {
             follower.setStartingPose(pose);
+        }
+    }
+
+    public void setPose(Pose pose) {
+        if (follower != null) {
+            follower.setPose(pose);
+        }
+    }
+
+    public void setMaxPower(double power){
+        if (follower != null) {
+            follower.setMaxPower(power);
         }
     }
 
@@ -133,8 +157,17 @@ public class DriveSubsystem {
 
     /**
      * Advances the Pedro Pathing control loop by one tick.
-     * Call once per loop iteration during autonomous path following.
-     * (In TeleOp, {@link #setTeleOpDrive} already calls update() internally.)
+     *
+     * <p>In TeleOp: call this <em>once at the very top of the loop</em> (right after clearing the
+     * bulk cache) so that:
+     * <ol>
+     *   <li>The Pinpoint/odometry localizer reads fresh encoder data and updates the robot's pose.</li>
+     *   <li>Motor powers queued by {@link #setTeleOpDrive} in the <em>previous</em> loop are applied.</li>
+     * </ol>
+     * Separating update() from setTeleOpDrive() guarantees odometry is always current regardless of
+     * which drive-command branch runs (manual, seek, auto-park, etc.).
+     *
+     * <p>In Autonomous: call once per loop iteration during path following.
      */
     public void update() {
         if (follower != null) {

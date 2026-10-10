@@ -21,7 +21,8 @@ public final class OdometryConfig {
     // Pinpoint encoder sign controls.
     // If autonomous runs away in "forward" even with correct motor directions,
     // flip PINPOINT_FORWARD_ENCODER_REVERSED first.
-    public static boolean PINPOINT_FORWARD_ENCODER_REVERSED = true;
+    public static boolean PINPOINT_FORWARD_ENCODER_REVERSED = false;
+    // Strafe sign tuned so autonomous Y-error correction does not run away left.
     public static boolean PINPOINT_STRAFE_ENCODER_REVERSED = true;
 
     // ENCODER_*: raw odometry wheel conversion placeholders.

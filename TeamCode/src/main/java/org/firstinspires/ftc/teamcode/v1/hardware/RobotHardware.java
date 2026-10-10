@@ -5,6 +5,8 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.HardwareMap;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
+
 import org.firstinspires.ftc.robotcore.external.hardware.camera.WebcamName;
 
 import java.util.List;
@@ -27,6 +29,10 @@ public class RobotHardware {
     private GoBildaPinpointDriver pinpoint;
     private WebcamName webcam;
     private DcMotorEx intakeFront;
+    private DcMotorEx pollenLauncher;
+    //private DcMotorEx nectarLauncher;
+    private NormalizedColorSensor leftColorSensor;
+    private NormalizedColorSensor rightColorSensor;
 
     /**
      * Maps all hardware devices and enables manual bulk caching on every REV hub.
@@ -66,8 +72,14 @@ public class RobotHardware {
             webcam = null;
         }
 
+        // ── Season devices ───────────────────────────────────────────────────────────────────────
+        // Add hardwareMap.get() calls here as new mechanisms are added each season.
+        // Example:
+        //   liftMotor = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.LIFT_MOTOR);
+        //   liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         try {
             intakeFront = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.INTAKE_FRONT);
+            intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         } catch (Exception ignored) {
             intakeFront = null;
         }
@@ -75,6 +87,16 @@ public class RobotHardware {
         if (intakeFront != null) {
             intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
         }
+
+        pollenLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.POLLEN_LAUNCHER);
+        pollenLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        //nectarLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.NECTAR_LAUNCHER);
+        //nectarLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        leftColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.LEFT_COLOR_SENSOR);
+        rightColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.RIGHT_COLOR_SENSOR);
+
     }
 
     /**
@@ -139,6 +161,21 @@ public class RobotHardware {
     public DcMotorEx getIntakeFront() {
         return intakeFront;
     }
+    public DcMotorEx getPollenLauncher() {
+        return pollenLauncher;
+    }
+    /*
+    public DcMotorEx getNectarLauncher() {
+        return nectarLauncher;
+    }
+     */
+    public NormalizedColorSensor getLeftColorSensor() {
+        return leftColorSensor;
+    }
+    public NormalizedColorSensor getRightColorSensor() {
+        return rightColorSensor;
+    }
+
 }
 
 

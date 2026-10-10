@@ -9,7 +9,7 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
  * Reads gamepad input and delegates to subsystems via RobotContainer.
  * Contains no hardware references — everything goes through robot.* fields.
  *
- * Loop order: clear bulk cache → read input → update subsystems → telemetry.
+ * Loop order: clear bulk cache → update odometry → read input → queue drive → telemetry.
  */
 @TeleOp(name = "V1 TeleOp", group = "v1")
 public class TeleOpMode extends RobotOpMode {
@@ -17,6 +17,8 @@ public class TeleOpMode extends RobotOpMode {
     // Field-centric mode toggle state and edge detection for gamepad1.back.
     private boolean isFieldCentric = false;
     private boolean prevBackPressed = false;
+    private boolean prevStartPressed = false;
+    private int backButtonState = 0;
 
     @Override
     public void runOpMode() throws InterruptedException {
@@ -40,21 +42,56 @@ public class TeleOpMode extends RobotOpMode {
             // 1. Clear bulk cache — must be the very first call in the loop.
             robot.hardware.clearBulkCache();
 
-            // 1.5 Toggle field-centric on rising edge of back button.
+            // 2. Advance the Pedro Pathing follower: ticks the Pinpoint localizer so
+            //    getPose() is fresh, and applies the drive powers queued last iteration.
+            //    This must run every loop — before any drive-command logic — so odometry
+            //    is never silently skipped by an early return in a drive branch.
+            robot.drive.update();
+
+            // 3. Toggle field-centric on rising edge of back button.
+            /*
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
                 isFieldCentric = !isFieldCentric;
             }
             prevBackPressed = backPressed;
+             */
 
-            // 2. Read input and drive.
+            boolean backPressed = gamepad1.back;
+            if (backPressed && !prevBackPressed) {
+                backButtonState += 1;
+            }
+            prevBackPressed = backPressed;
+            if (backButtonState == 3) {
+                backButtonState = 0;
+            }
+
+            if (backButtonState == 0) {
+                isFieldCentric = false;
+            } if (backButtonState == 1) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = false;
+            } if (backButtonState == 2) {
+                isFieldCentric = true;
+                DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE = true;
+            }
+
+            // 3.2 Reset odometry to origin (0, 0, 0°) on rising edge of start button.
+            boolean startPressed = gamepad1.start;
+            if (startPressed && !prevStartPressed) {
+                robot.localization.resetToOrigin();
+            }
+            prevStartPressed = startPressed;
+
+            // 4. Read input and queue drive commands.
             applyTeleOpDrive(
                     gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
                     gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
                     gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
                     gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
                     DriveConfig.TELEOP_DRIVE_DEADZONE,
-                    DriveConfig.TELEOP_INPUT_EXPONENT,
+                    DriveConfig.TELEOP_INPUT_EXPONENT_FORWARD,
+                    DriveConfig.TELEOP_INPUT_EXPONENT_STRAFE,
                     DriveConfig.TELEOP_SPEED_SCALE,
                     DriveConfig.TELEOP_SPEED_SCALE_TURN,
                     DriveConfig.TELEOP_ROTATION_SCALE,
@@ -71,6 +108,7 @@ public class TeleOpMode extends RobotOpMode {
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
                     : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+            telemetry.addData("Odometry Reset", "gamepad1.start  |  status: " + robot.localization.getStatus());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
                     ? DriveConfig.TELEOP_FIELD_CENTRIC_RED_OFFSET_RAD
@@ -82,6 +120,7 @@ public class TeleOpMode extends RobotOpMode {
                     DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE ? "RED" : "BLUE",
                     Math.toDegrees(allianceOffsetRad)
             );
+            telemetry.addData("Button State", backButtonState);
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
@@ -104,7 +143,8 @@ public class TeleOpMode extends RobotOpMode {
             double rightStickX,
             double rightTrigger,
             double deadzone,
-            double inputExponent,
+            double inputExponentForward,
+            double inputExponentStrafe,
             double speedScale,
             double speedScaleTurn,
             double rotationScale,
@@ -140,9 +180,9 @@ public class TeleOpMode extends RobotOpMode {
         double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
-        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponent);
-        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponent);
-        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponent);
+        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentStrafe);
+        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentForward);
+        double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponentForward);
 
         // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
         double driveScale = (rawR != 0) ? speedScaleTurn : speedScale;
