@@ -334,7 +334,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 if (shootingStatesPollen == ShootingStatesPollen.OFF) {
                     robot.shooting.stop();
                 } else if (shootingStatesPollen == ShootingStatesPollen.SHOOT) {
-                    robot.shooting.startPollenShooter();
+                    robot.shooting.startPollenShooter(15);
                 }
 
             }

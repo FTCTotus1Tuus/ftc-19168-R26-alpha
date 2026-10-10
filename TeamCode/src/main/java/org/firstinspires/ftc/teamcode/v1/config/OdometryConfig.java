@@ -22,7 +22,8 @@ public final class OdometryConfig {
     // If autonomous runs away in "forward" even with correct motor directions,
     // flip PINPOINT_FORWARD_ENCODER_REVERSED first.
     public static boolean PINPOINT_FORWARD_ENCODER_REVERSED = false;
-    public static boolean PINPOINT_STRAFE_ENCODER_REVERSED = false;
+    // Strafe sign tuned so autonomous Y-error correction does not run away left.
+    public static boolean PINPOINT_STRAFE_ENCODER_REVERSED = true;
 
     // ENCODER_*: raw odometry wheel conversion placeholders.
     public static double ENCODER_ODOM_WHEEL_DIAMETER_IN = 1.37795;

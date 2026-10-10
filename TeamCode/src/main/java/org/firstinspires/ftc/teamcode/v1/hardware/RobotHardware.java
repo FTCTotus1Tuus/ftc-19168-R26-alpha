@@ -30,6 +30,7 @@ public class RobotHardware {
     private WebcamName webcam;
     private DcMotorEx intakeFront;
     private DcMotorEx pollenLauncher;
+    //private DcMotorEx nectarLauncher;
     private NormalizedColorSensor leftColorSensor;
     private NormalizedColorSensor rightColorSensor;
 
@@ -81,6 +82,9 @@ public class RobotHardware {
 
         pollenLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.POLLEN_LAUNCHER);
         pollenLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
+
+        //nectarLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.NECTAR_LAUNCHER);
+        //nectarLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
         leftColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.LEFT_COLOR_SENSOR);
         rightColorSensor = hardwareMap.get(NormalizedColorSensor.class, RobotHardwareNames.RIGHT_COLOR_SENSOR);
@@ -151,6 +155,11 @@ public class RobotHardware {
     public DcMotorEx getPollenLauncher() {
         return pollenLauncher;
     }
+    /*
+    public DcMotorEx getNectarLauncher() {
+        return nectarLauncher;
+    }
+     */
     public NormalizedColorSensor getLeftColorSensor() {
         return leftColorSensor;
     }
