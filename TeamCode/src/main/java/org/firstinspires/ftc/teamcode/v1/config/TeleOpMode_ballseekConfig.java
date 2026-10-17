@@ -1,6 +1,9 @@
 package org.firstinspires.ftc.teamcode.v1.config;
 
 import com.acmerobotics.dashboard.config.Config;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.api.PoseFactory;
 
 @Config
 public class TeleOpMode_ballseekConfig {
@@ -30,7 +33,5 @@ public class TeleOpMode_ballseekConfig {
     public static double DELIVER_DWELL_SEC = 3.0;         // seconds to wait at locationA before resuming seek
 
     // locationA destination — tunable via FTCDashboard
-    public static double LOCATION_A_X = 96.0;             // inches
-    public static double LOCATION_A_Y = 96.0;             // inches
-    public static double LOCATION_A_HEADING_DEG = 70.0;   // degrees (converted to radians when path is built)
+
 }

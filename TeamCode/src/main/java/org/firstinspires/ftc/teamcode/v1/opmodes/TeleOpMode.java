@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 
@@ -107,7 +107,7 @@ public class TeleOpMode extends RobotOpMode {
             // 3. Telemetry.
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
-                    : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+                    : String.format("(%.2f, %.2f) %.2f°", _pose.x(), _pose.y(), Math.toDegrees(_pose.heading())));
             telemetry.addData("Odometry Reset", "gamepad1.start  |  status: " + robot.localization.getStatus());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
@@ -200,7 +200,7 @@ public class TeleOpMode extends RobotOpMode {
         double commandY = shapedY;
         if (isFieldCentric && robotPose != null) {
             double allianceOffsetRad = isRedAlliance ? redAllianceOffsetRad : blueAllianceOffsetRad;
-            double heading = robotPose.getHeading() + allianceOffsetRad;
+            double heading = robotPose.heading() + allianceOffsetRad;
             // Rotate input (commandX, commandY) into the robot frame using Pedro heading convention.
             // This keeps stick-up consistently "away from drivers" even when the robot is sideways.
             commandX = shapedX * Math.cos(heading) - shapedY * Math.sin(heading);

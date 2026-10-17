@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes.auto;
 
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveForwardOneConfig;
@@ -55,7 +55,7 @@ public class DriveForwardOneAuto extends AutonomousBase {
 
     // ── Path ─────────────────────────────────────────────────────────────────────────────────────
 
-    private PathChain driveForwardPath;
+    private Path driveForwardPath;
     private Pose plannedStartPose;
     private Pose plannedEndPose;
 
@@ -69,7 +69,7 @@ public class DriveForwardOneAuto extends AutonomousBase {
     protected void buildPath() {
         plannedStartPose = startPose();
         plannedEndPose = endPose();
-        driveForwardPath = buildDriveOnlyStraightPath(plannedStartPose, plannedEndPose);
+        //driveForwardPath = buildDriveOnlyStraightPath(plannedStartPose, plannedEndPose);
     }
 
     // ── OpMode entry point ────────────────────────────────────────────────────────────────────────
@@ -79,11 +79,14 @@ public class DriveForwardOneAuto extends AutonomousBase {
         initRobot();
         buildPath();
 
+        /*
         showStraightDriveReadyTelemetry(
                 "V1 Drive Forward 1 Tile — Ready",
                 plannedStartPose,
                 plannedEndPose
         );
+
+         */
 
         waitForStart();
         if (isStopRequested()) {
@@ -99,6 +102,7 @@ public class DriveForwardOneAuto extends AutonomousBase {
             return;
         }
 
+        /*
         followDriveOnlyStraightPath(
                 driveForwardPath,
                 plannedStartPose,
@@ -108,6 +112,8 @@ public class DriveForwardOneAuto extends AutonomousBase {
                 DriveForwardOneConfig.END_PROGRESS_TOLERANCE_IN,
                 DriveForwardOneConfig.END_SETTLE_TIME_S
         );
+
+         */
 
         // ── Finish ────────────────────────────────────────────────────────────────────────────────
         saveFinalState();

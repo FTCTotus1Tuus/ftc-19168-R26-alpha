@@ -1,9 +1,11 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes;
 
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.localization.PoseTracker;
-import com.pedropathing.paths.PathChain;
+import static com.pedropathing.api.Paths.line;
+
+import com.pedropathing.api.PoseFactory;
+import com.pedropathing.math.Pose;
+//import com.pedropathing.localization.PoseTracker;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
@@ -17,6 +19,9 @@ import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
+import com.pedropathing.api.PoseFactory;
 
 /**
  * TeleOpMode — driver-control OpMode.
@@ -278,18 +283,12 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 // pass resets the follower's progress and the robot never actually drives.
                 if (isBallDetected) {
                     Pose pathStartPose = robot.drive.getPose();
+                    Pose LOCATION_A = PoseFactory.degrees().of(96, 96, 70);
                     if (pathStartPose != null) {
-                        PathChain parkPath = robot.drive.pathBuilder()
-                                .addPath(new BezierLine(
-                                        new Pose(pathStartPose.getX(), pathStartPose.getY()),
-                                        new Pose(TeleOpMode_ballseekConfig.LOCATION_A_X, TeleOpMode_ballseekConfig.LOCATION_A_Y)
-                                ))
-                                .setLinearHeadingInterpolation(pathStartPose.getHeading(), Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG))
-                                .build();
+                        Path parkPath = line(pathStartPose, LOCATION_A).linear(pathStartPose, LOCATION_A);
                         // holdEnd=false so isFollowing() goes false on arrival (matches AutonomousBase usage);
                         // with holdEnd=true the follower can report busy forever and DWELL is never reached.
-                        robot.drive.setMaxPower(0.5);
-                        robot.drive.followPath(parkPath, false);
+                        robot.drive.followPath(parkPath);
                         seekState = SeekState.RETURN_TO_LOCATION_A;
                         isReturnToLocationAMode = true;
                         autoForwardMode = false;
@@ -375,7 +374,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             // 99. Telemetry.
             Pose _pose = robot.drive.getPose();
             telemetry.addData("Pose", _pose == null ? "N/A"
-                    : String.format("(%.2f, %.2f) %.2f°", _pose.getX(), _pose.getY(), Math.toDegrees(_pose.getHeading())));
+                    : String.format("(%.2f, %.2f) %.2f°", _pose.x(), _pose.y(), Math.toDegrees(_pose.heading())));
             telemetry.addData("Odometry Reset", "gamepad1.start  |  status: " + robot.localization.getStatus());
             telemetry.addData("Drive OK",  robot.drive.isAvailable());
             double allianceOffsetRad = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
@@ -430,9 +429,9 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
     private Pose getLocationAPose() {
         return new Pose(
-                TeleOpMode_ballseekConfig.LOCATION_A_X,
-                TeleOpMode_ballseekConfig.LOCATION_A_Y,
-                Math.toRadians(TeleOpMode_ballseekConfig.LOCATION_A_HEADING_DEG)
+                96,
+                96,
+                70
         );
     }
 
@@ -509,7 +508,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         double commandY = shapedY;
         if (isFieldCentric && robotPose != null) {
             double allianceOffsetRad = isRedAlliance ? redAllianceOffsetRad : blueAllianceOffsetRad;
-            double heading = robotPose.getHeading() + allianceOffsetRad;
+            double heading = robotPose.heading() + allianceOffsetRad;
             // Rotate input (commandX, commandY) into the robot frame using Pedro heading convention.
             // This keeps stick-up consistently "away from drivers" even when the robot is sideways.
             commandX = shapedX * Math.cos(heading) - shapedY * Math.sin(heading);

@@ -1,9 +1,7 @@
 package org.firstinspires.ftc.teamcode.v1.opmodes.auto;
 
-import com.pedropathing.geometry.BezierLine;
-import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathBuilder;
-import com.pedropathing.paths.PathChain;
+import com.pedropathing.math.Pose;
+import com.pedropathing.paths.Path;
 import com.qualcomm.robotcore.util.RobotLog;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -57,7 +55,8 @@ public abstract class AutonomousBase extends RobotOpMode {
      * Builds a straight Pedro path and seeds the localizer with the supplied start pose.
      * Uses constant heading plus drive-only PID mode at execution time for stable straight moves.
      */
-    protected PathChain buildDriveOnlyStraightPath(Pose startPose, Pose endPose) {
+    /*
+    protected Path buildDriveOnlyStraightPath(Pose startPose, Pose endPose) {
         if (!robot.drive.isAvailable() || robot.drive.pathBuilder() == null) {
             return null;
         }
@@ -70,10 +69,12 @@ public abstract class AutonomousBase extends RobotOpMode {
         return pathBuilder.build();
     }
 
+     */
+
     /** Adds a standard ready screen for straight-drive autonomous routes. */
     protected void showStraightDriveReadyTelemetry(String title, Pose startPose, Pose endPose, String... extraLines) {
-        double deltaXIn = endPose.getX() - startPose.getX();
-        double deltaYIn = endPose.getY() - startPose.getY();
+        double deltaXIn = endPose.x() - startPose.x();
+        double deltaYIn = endPose.y() - startPose.y();
         double pathDistanceIn = Math.hypot(deltaXIn, deltaYIn);
         boolean forwardDominant = Math.abs(deltaXIn) >= Math.abs(deltaYIn);
 
@@ -83,7 +84,7 @@ public abstract class AutonomousBase extends RobotOpMode {
         telemetry.addData("Delta (in)", "dX=%.1f, dY=%.1f", deltaXIn, deltaYIn);
         telemetry.addData("Distance (in)", "%.1f", pathDistanceIn);
         telemetry.addData("Intent", forwardDominant ? "Forward-dominant (+/-X)" : "Strafe-dominant (+/-Y)");
-        telemetry.addData("Heading mode", "constant %.1f deg (drive-only PID mode)", Math.toDegrees(startPose.getHeading()));
+        telemetry.addData("Heading mode", "constant %.1f deg (drive-only PID mode)", Math.toDegrees(startPose.heading()));
         if (!forwardDominant) {
             telemetry.addLine("Sanity check: This path is mostly strafing. Verify END_X/END_Y before start.");
         }
@@ -98,7 +99,7 @@ public abstract class AutonomousBase extends RobotOpMode {
      * Returns the final pose and whether execution ended via a safety stop.
      */
     protected StraightDriveResult followDriveOnlyStraightPath(
-            PathChain path,
+            Path path,
             Pose startPose,
             Pose endPose,
             double maxAutoTimeS,
@@ -110,8 +111,7 @@ public abstract class AutonomousBase extends RobotOpMode {
             return new StraightDriveResult(true, "Drive/path unavailable", robot.drive.getPose());
         }
 
-        robot.drive.enableDriveOnlyPathMode();
-        robot.drive.followPath(path, false);
+        robot.drive.followPath(path);
 
         ElapsedTime pathTimer = new ElapsedTime();
         ElapsedTime settleTimer = new ElapsedTime();
@@ -119,8 +119,8 @@ public abstract class AutonomousBase extends RobotOpMode {
         boolean safetyStopTriggered = false;
         String safetyReason = "";
 
-        double deltaXIn = endPose.getX() - startPose.getX();
-        double deltaYIn = endPose.getY() - startPose.getY();
+        double deltaXIn = endPose.x() - startPose.x();
+        double deltaYIn = endPose.y() - startPose.y();
         double pathLengthIn = Math.max(1e-6, Math.hypot(deltaXIn, deltaYIn));
         double pathUnitX = deltaXIn / pathLengthIn;
         double pathUnitY = deltaYIn / pathLengthIn;
@@ -139,16 +139,16 @@ public abstract class AutonomousBase extends RobotOpMode {
 
             if (livePose != null) {
                 double traveledFromStartIn = Math.hypot(
-                        livePose.getX() - startPose.getX(),
-                        livePose.getY() - startPose.getY()
+                        livePose.x() - startPose.x(),
+                        livePose.y() - startPose.y()
                 );
 
                 double translationErrorIn = Math.hypot(
-                        endPose.getX() - livePose.getX(),
-                        endPose.getY() - livePose.getY()
+                        endPose.x() - livePose.x(),
+                        endPose.y() - livePose.y()
                 );
-                double progressIn = (livePose.getX() - startPose.getX()) * pathUnitX
-                        + (livePose.getY() - startPose.getY()) * pathUnitY;
+                double progressIn = (livePose.x() - startPose.x()) * pathUnitX
+                        + (livePose.y() - startPose.y()) * pathUnitY;
 
                 if (traveledFromStartIn > maxTravelFromStartIn) {
                     safetyStopTriggered = true;

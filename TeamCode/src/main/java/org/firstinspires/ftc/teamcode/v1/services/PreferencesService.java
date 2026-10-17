@@ -1,98 +1,158 @@
+
 package org.firstinspires.ftc.teamcode.v1.services;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 
 import org.firstinspires.ftc.robotcore.internal.system.AppUtil;
 
-/**
- * PreferencesService — persistence boundary for handoff data between OpModes.
- *
- * Planned responsibilities:
- * - store autonomous outputs (e.g., alliance/pose)
- * - restore values in TeleOp initialization
- * - keep storage backend isolated from subsystems and OpModes
- */
 public class PreferencesService {
 
     public static final String ALLIANCE_UNKNOWN = "unknown";
     public static final String ALLIANCE_RED = "red";
     public static final String ALLIANCE_BLUE = "blue";
 
-    private static final String PREFS_NAME = "ftc19168_v1_preferences";
-    private static final String KEY_HAS_POSE = "handoff_has_pose";
-    private static final String KEY_POSE_X = "handoff_pose_x";
-    private static final String KEY_POSE_Y = "handoff_pose_y";
-    private static final String KEY_POSE_HEADING = "handoff_pose_heading";
-    private static final String KEY_ALLIANCE = "handoff_alliance";
+    private static final String PREFS_NAME =
+            "ftc19168_v1_preferences";
+
+    private static final String KEY_HAS_POSE =
+            "handoff_has_pose";
+
+    private static final String KEY_POSE_X =
+            "handoff_pose_x";
+
+    private static final String KEY_POSE_Y =
+            "handoff_pose_y";
+
+    private static final String KEY_POSE_HEADING =
+            "handoff_pose_heading";
+
+    private static final String KEY_ALLIANCE =
+            "handoff_alliance";
 
     private SharedPreferences sharedPreferences;
 
-    /** Initializes preference storage if needed. */
+    /**
+     * Initializes preference storage.
+     */
     public void initialize() {
         if (sharedPreferences != null) {
             return;
         }
 
         Context context = AppUtil.getDefContext();
-        sharedPreferences = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE);
 
-        // TODO: add additional season handoff keys here (e.g., park side, scored game elements).
+        sharedPreferences = context.getSharedPreferences(
+                PREFS_NAME,
+                Context.MODE_PRIVATE
+        );
     }
 
-    /** Flushes/saves preference state if needed. */
+    /**
+     * SharedPreferences.apply() writes asynchronously.
+     * Nothing needs to be flushed here.
+     */
     public void stop() {
-        // No-op for SharedPreferences.apply(); keep this method as an extension point.
+        // Intentionally empty.
     }
 
     public void saveAllianceColor(String allianceColor) {
         SharedPreferences prefs = getPrefsOrNull();
+
         if (prefs == null) {
             return;
         }
 
         String normalized = normalizeAlliance(allianceColor);
-        prefs.edit().putString(KEY_ALLIANCE, normalized).apply();
+
+        prefs.edit()
+                .putString(KEY_ALLIANCE, normalized)
+                .apply();
     }
 
     public String getAllianceColor() {
         SharedPreferences prefs = getPrefsOrNull();
+
         if (prefs == null) {
             return ALLIANCE_UNKNOWN;
         }
-        return normalizeAlliance(prefs.getString(KEY_ALLIANCE, ALLIANCE_UNKNOWN));
+
+        return normalizeAlliance(
+                prefs.getString(KEY_ALLIANCE, ALLIANCE_UNKNOWN)
+        );
     }
 
+    /**
+     * Saves the robot pose for use by another OpMode.
+     * Pose heading is stored in the same units supplied by Pedro.
+     */
     public void savePose(Pose pose) {
         SharedPreferences prefs = getPrefsOrNull();
+
         if (prefs == null || pose == null) {
             return;
         }
 
         prefs.edit()
                 .putBoolean(KEY_HAS_POSE, true)
-                .putLong(KEY_POSE_X, Double.doubleToRawLongBits(pose.getX()))
-                .putLong(KEY_POSE_Y, Double.doubleToRawLongBits(pose.getY()))
-                .putLong(KEY_POSE_HEADING, Double.doubleToRawLongBits(pose.getHeading()))
+                .putLong(
+                        KEY_POSE_X,
+                        Double.doubleToRawLongBits(pose.x())
+                )
+                .putLong(
+                        KEY_POSE_Y,
+                        Double.doubleToRawLongBits(pose.y())
+                )
+                .putLong(
+                        KEY_POSE_HEADING,
+                        Double.doubleToRawLongBits(pose.heading())
+                )
                 .apply();
     }
 
+    /**
+     * Returns the saved robot pose, or null if no pose exists.
+     */
     public Pose getSavedPose() {
         SharedPreferences prefs = getPrefsOrNull();
-        if (prefs == null || !prefs.getBoolean(KEY_HAS_POSE, false)) {
+
+        if (prefs == null ||
+                !prefs.getBoolean(KEY_HAS_POSE, false)) {
             return null;
         }
 
-        double x = Double.longBitsToDouble(prefs.getLong(KEY_POSE_X, Double.doubleToRawLongBits(0.0)));
-        double y = Double.longBitsToDouble(prefs.getLong(KEY_POSE_Y, Double.doubleToRawLongBits(0.0)));
-        double heading = Double.longBitsToDouble(prefs.getLong(KEY_POSE_HEADING, Double.doubleToRawLongBits(0.0)));
+        double x = Double.longBitsToDouble(
+                prefs.getLong(
+                        KEY_POSE_X,
+                        Double.doubleToRawLongBits(0.0)
+                )
+        );
+
+        double y = Double.longBitsToDouble(
+                prefs.getLong(
+                        KEY_POSE_Y,
+                        Double.doubleToRawLongBits(0.0)
+                )
+        );
+
+        double heading = Double.longBitsToDouble(
+                prefs.getLong(
+                        KEY_POSE_HEADING,
+                        Double.doubleToRawLongBits(0.0)
+                )
+        );
+
         return new Pose(x, y, heading);
     }
 
+    /**
+     * Clears the saved pose without clearing alliance color.
+     */
     public void clearSavedPose() {
         SharedPreferences prefs = getPrefsOrNull();
+
         if (prefs == null) {
             return;
         }
@@ -113,10 +173,11 @@ public class PreferencesService {
         if (ALLIANCE_RED.equalsIgnoreCase(allianceColor)) {
             return ALLIANCE_RED;
         }
+
         if (ALLIANCE_BLUE.equalsIgnoreCase(allianceColor)) {
             return ALLIANCE_BLUE;
         }
+
         return ALLIANCE_UNKNOWN;
     }
 }
-

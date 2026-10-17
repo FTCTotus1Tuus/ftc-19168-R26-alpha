@@ -1,6 +1,6 @@
 package org.firstinspires.ftc.teamcode.v1.services;
 
-import com.pedropathing.geometry.Pose;
+import com.pedropathing.math.Pose;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.util.RobotLog;
 
