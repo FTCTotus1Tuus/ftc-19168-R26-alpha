@@ -43,7 +43,7 @@ public class ShootingConfig {
     public static double NECTAR_GATE_OPEN = 1;
     public static double NECTAR_GATE_CLOSE = 0;
 
-    public static double[] pollenPidOutput = {0, 0, 0, 0};
-    public static double[] nectarPidOutput = {0, 0, 0, 0};
+    //public static double[] pollenPidOutput = {0, 0, 0, 0};
+    //public static double[] nectarPidOutput = {0, 0, 0, 0};
 
 }
