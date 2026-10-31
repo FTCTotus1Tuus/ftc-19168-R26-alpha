@@ -63,7 +63,7 @@ public class MotorHelper {
         return returnArray;
     }
 
-    public static double[] pidRunWithEncoder(DcMotorEx motor, double pgain, double pgain2, double igain, double setpoint, double pdutyMin, double pdutyMax, double idutyMin, double idutyMax, double iduty, double powerMin, double powerMax, double gain, double minRPM, double maxRPM, float control, boolean isTelemetryShown) {
+    public static double[] pidRunWithEncoder(DcMotorEx motor, double pgain, double pgain2, double igain, double setpoint, double pdutyMin, double pdutyMax, double idutyMin, double idutyMax, double iduty, double powerMin, double powerMax, double gain, double minRPM, double maxRPM, float control, boolean isPollen) {
         double clampedSetpoint = clamp(setpoint + control * gain, minRPM, maxRPM);
 
         double ticksPerRotation = motor.getMotorType().getTicksPerRev();
@@ -71,6 +71,10 @@ public class MotorHelper {
 
         double usedPgain = control > 0 ? pgain2 : pgain;
         double error = clampedSetpoint - currentRpm;
+
+        if (isPollen) {
+            error = -error;
+        }
 
         double pdutyOut = clamp(usedPgain * error, pdutyMin, pdutyMax);
         double idutyOut = clamp(iduty + (igain * error), idutyMin, idutyMax);

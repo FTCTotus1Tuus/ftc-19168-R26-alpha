@@ -21,7 +21,7 @@ public class ShootingSubsystem {
 
     };
 
-    public void startPollenShooter(double power){
+    public void startPollenShooter(double targetRPM){
         //hardware.getPollenLauncher().setPower(ShootingConfig.SHOOTING_POWER_POLLEN);
 
         if (hardware.getPollenLauncher().getPower() == 0) {
@@ -33,7 +33,7 @@ public class ShootingSubsystem {
                 ShootingConfig.POLLEN_PGAIN,
                 ShootingConfig.POLLEN_PGAIN2,
                 ShootingConfig.POLLEN_IGAIN,
-                power,
+                targetRPM, //AI wanted it called targetRPM instead of power
                 ShootingConfig.POLLEN_PDUTY_MIN,
                 ShootingConfig.POLLEN_PDUTY_MAX,
                 ShootingConfig.POLLEN_IDUTY_MIN,
@@ -50,7 +50,7 @@ public class ShootingSubsystem {
         hardware.getPollenLauncher().setPower(-ShootingConfig.pollenPidOutput[0]);
     };
 
-    public void startNectarShooter(double power){
+    public void startNectarShooter(double targetRPM){
         //hardware.getNectarLauncher().setPower(ShootingConfig.SHOOTING_POWER_NECTAR);
 
         if (hardware.getNectarLauncher().getPower() == 0) {
@@ -62,7 +62,7 @@ public class ShootingSubsystem {
                 ShootingConfig.NECTAR_PGAIN,
                 ShootingConfig.NECTAR_PGAIN2,
                 ShootingConfig.NECTAR_IGAIN,
-                power,
+                targetRPM, //AI wanted it called targetRPM instead of power
                 ShootingConfig.NECTAR_PDUTY_MIN,
                 ShootingConfig.NECTAR_PDUTY_MAX,
                 ShootingConfig.NECTAR_IDUTY_MIN,
@@ -74,7 +74,7 @@ public class ShootingSubsystem {
                 ShootingConfig.NECTAR_MIN_RPM,
                 ShootingConfig.NECTAR_MAX_RPM,
                 0,
-                true
+                false
         );
         hardware.getNectarLauncher().setPower(-ShootingConfig.nectarPidOutput[0]);
     };
@@ -100,6 +100,22 @@ public class ShootingSubsystem {
 
         return (ticksPerSecond * 60.0) / ticksPerRev;
     }
+
+    public double getNectarLauncherRpm() {
+        if (hardware.getNectarLauncher() == null) {
+            return 0.0;
+        }
+
+        double ticksPerRev = hardware.getNectarLauncher().getMotorType().getTicksPerRev();
+        double ticksPerSecond = Math.abs(hardware.getNectarLauncher().getVelocity());
+
+        if (ticksPerRev <= 0) {
+            return ticksPerSecond;
+        }
+
+        return (ticksPerSecond * 60.0) / ticksPerRev;
+    }
+
 
     public void stop(){
         hardware.getPollenLauncher().setPower(0);

@@ -10,7 +10,6 @@ import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
-import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
 import org.firstinspires.ftc.teamcode.v1.testing.pedroPathing.pedro.Constants;
 
 public class DriveSubsystem {
@@ -63,8 +62,8 @@ public class DriveSubsystem {
         if (follower != null) {
             follower.manual(
                     forward,
-                    strafe,
-                    turn * DriveConfig.TELEOP_ROTATION_SCALE
+                    turn * DriveConfig.TELEOP_ROTATION_SCALE,
+                    strafe
             );
         }
     }
