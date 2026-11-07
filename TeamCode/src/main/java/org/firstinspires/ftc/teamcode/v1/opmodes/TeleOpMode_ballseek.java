@@ -13,8 +13,11 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.teamcode.v1.config.IntakeConfig;
 import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
+import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
 /**
@@ -37,13 +40,14 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private boolean prevXButtonPressed = false;
     private boolean isIntakeKillSwitchOn = false;
 
-    private enum IntakeStates {OFF, IN, OUT};
+    private enum IntakeStates {OFF, IN, SLOW};
     private enum ShootingStatesPollen {OFF, SHOOT};
     private enum ShootingStatesNectar {OFF, SHOOT};
 
-    private enum GateMeterPhase {WAIT_SPINUP, OPEN, CLOSED};
+    private enum GateMeterPhase {READY_TO_OPEN, OPEN, CLOSED};
 
-    private GateMeterPhase gateMeterPhase = GateMeterPhase.WAIT_SPINUP;
+    private GateMeterPhase pollenGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
+    private GateMeterPhase nectarGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
     private IntakeStates intakeState = IntakeStates.IN;
     private ShootingStatesPollen shootingStatesPollen = ShootingStatesPollen.OFF;
     private ShootingStatesNectar shootingStatesNectar = ShootingStatesNectar.OFF;
@@ -65,8 +69,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
     private ElapsedTime ballVisibleTimer;
     private ElapsedTime ballDetectConfirmTimer;
     private ElapsedTime deliverDwellTimer;
-    private ElapsedTime shooterGateDelayTimer;
-    private ElapsedTime gateMeterTimer;
+    private ElapsedTime pollenGateMeterTimer;
+    private ElapsedTime nectarGateMeterTimer;
     private double forward = 0;
     private double turn = 0;
     private int backButtonState = 0;
@@ -80,8 +84,6 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
 
     private boolean prevStartPressed = false;
-    private boolean prevShootRequested = false;
-
     @Override
     public void runOpMode() throws InterruptedException {
         initRobot();
@@ -96,8 +98,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         ballVisibleTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
         ballDetectConfirmTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
         deliverDwellTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-        shooterGateDelayTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
-        gateMeterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+        pollenGateMeterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
+        nectarGateMeterTimer = new ElapsedTime(ElapsedTime.Resolution.SECONDS);
 
 
         waitForStart();
@@ -114,8 +116,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         prevStartPressed = gamepad1.start;
         prevLeftBumperPressed = gamepad1.left_bumper;
 
-        gateMeterPhase = GateMeterPhase.WAIT_SPINUP;
-        gateMeterTimer.reset();
+        pollenGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
+        nectarGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
+        pollenGateMeterTimer.reset();
+        nectarGateMeterTimer.reset();
 
         while (opModeIsActive() && !isStopRequested()) {
 
@@ -138,6 +142,16 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             prevBackPressed = backPressed;
 
              */
+           /*
+            if (gamepad1.y) {
+                robot.intake.guideServoPos(IntakeConfig.INTAKE_GUIDE_CLOSE);
+            } else {
+                robot.intake.guideServoPos(IntakeConfig.INTAKE_GUIDE_OPEN);
+            }
+            */
+
+
+
 
             boolean backPressed = gamepad1.back;
             if (backPressed && !prevBackPressed) {
@@ -178,13 +192,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             }
             prevAButtonPressed = aPressed;
 
-            boolean bPressed = gamepad1.b;
-            if (bPressed && !prevBButtonPressed) {
-                // Dedicated hard cancel if seek state ever feels "stuck."
-                isSeekMode = false;
-                exitSeekMode();
-            }
-            prevBButtonPressed = bPressed;
+            boolean isIntakeReverseRequested = gamepad1.b;
+            prevBButtonPressed = isIntakeReverseRequested;
 
             boolean xPressed = gamepad1.x;
             if (xPressed && !prevXButtonPressed) {
@@ -193,17 +202,15 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             prevXButtonPressed = xPressed;
 
             boolean isShootRequested = gamepad2.right_trigger > 0.5 || gamepad1.left_trigger > 0.5;
-            if (isShootRequested && !prevShootRequested) {
-                shooterGateDelayTimer.reset();
-            }
-            boolean isGateOpenAllowed = isShootRequested
-                    && shooterGateDelayTimer.time() >= ShootingConfig.SHOOTING_GATE_OPEN_DELAY_SEC;
+            boolean isGateOpenRequested = gamepad2.left_trigger > 0.5;
             if (isShootRequested) {
                 shootingStatesPollen = ShootingStatesPollen.SHOOT;
                 shootingStatesNectar = ShootingStatesNectar.SHOOT;
+                intakeState = IntakeStates.SLOW;
             } else {
                 shootingStatesPollen = ShootingStatesPollen.OFF;
                 shootingStatesNectar = ShootingStatesNectar.OFF;
+                intakeState = IntakeStates.IN;
             }
 
 
@@ -337,10 +344,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
 
             if (!isSeekMode)  {
                 applyTeleOpDrive(
-                        gamepad1.left_stick_y,   // forward  (FTC SDK: negative when stick pushed up)
-                        gamepad1.left_stick_x,   // strafe   (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
-                        gamepad1.right_stick_x,  // turn     (scaled by DriveConfig.TELEOP_ROTATION_SCALE)
-                        gamepad1.right_trigger,  // precision: full press → TELEOP_PRECISION_SCALE speed
+                        gamepad1.left_stick_y,
+                        gamepad1.left_stick_x,
+                        gamepad1.right_stick_x,
+                        gamepad1.right_trigger,
                         DriveConfig.TELEOP_DRIVE_DEADZONE,
                         DriveConfig.TELEOP_INPUT_EXPONENT_FORWARD,
                         DriveConfig.TELEOP_INPUT_EXPONENT_STRAFE,
@@ -355,27 +362,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         robot.drive.getPose(),
                         false // TODO: wire this up when AutoParking is built
                 );
-                if (isShootRequested || isIntakeKillSwitchOn) {
-                    robot.intake.stop();
-                } else {
-                    robot.intake.start();
-                }
-
-                if (isShootRequested) {
-                    robot.shooting.startPollenShooter(ShootingConfig.TARGET_POLLEN_RPM);
-                    robot.shooting.startNectarShooter(ShootingConfig.TARGET_NECTAR_RPM);
-                    if (isGateOpenAllowed) {
-                        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_OPEN);
-                        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_OPEN);
-                    } else {
-                        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_CLOSE);
-                        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_CLOSE);
-                    }
-                } else {
-                    robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_CLOSE);
-                    robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_CLOSE);
-                    robot.shooting.stop();
-                }
+                applyIntakeAndShooting(isShootRequested, isGateOpenRequested, isIntakeReverseRequested);
 
             }
             else {
@@ -402,23 +389,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         resetBallTrackingState();
                     }
                 }
-                if (isShootRequested || isIntakeKillSwitchOn) {
-                    robot.intake.stop();
-                    robot.shooting.startPollenShooter(ShootingConfig.TARGET_POLLEN_RPM);
-                    robot.shooting.startNectarShooter(ShootingConfig.TARGET_NECTAR_RPM);
-                    if (isGateOpenAllowed) {
-                        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_OPEN);
-                        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_OPEN);
-                    } else {
-                        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_CLOSE);
-                        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_CLOSE);
-                    }
-                } else {
-                    robot.intake.start();
-                    robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_CLOSE);
-                    robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_CLOSE);
-                    robot.shooting.stop();
-                }
+                applyIntakeAndShooting(isShootRequested, isGateOpenRequested, isIntakeReverseRequested);
             }
 
             telemetry.addData("Ball Visible", target.isVisible);
@@ -464,6 +435,20 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                     "Nectar PIDuty P/I",
                     "%.4f / %.4f",
                     ShootingConfig.nectarPidOutput[3], ShootingConfig.nectarPidOutput[1]);
+            telemetry.addData(
+                    "Intake PIDuty P/I",
+                    "%.4f / %.4f",
+                    IntakeConfig.intakePidOutput[3], IntakeConfig.intakePidOutput[1]);
+            double intakeTargetRpm = isIntakeKillSwitchOn
+                    ? 0.0
+                    : (isIntakeReverseRequested
+                    ? -IntakeConfig.TARGET_INTAKE_RPM_NORMAL
+                    : (isShootRequested ? IntakeConfig.TARGET_INTAKE_RPM_SLOW : IntakeConfig.TARGET_INTAKE_RPM_NORMAL));
+            telemetry.addData(
+                    "Intake Target/Actual RPM",
+                    "%.1f / %.1f",
+                    intakeTargetRpm,
+                    robot.intake.getIntakeRpm());
             telemetry.addData("backButtonState", backButtonState);
             telemetry.addData("Centered", prevBallWasCentered);
             telemetry.addData("Close", prevBallWasClose);
@@ -477,9 +462,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addData("Deliver Dwell Timer", deliverDwellTimer.time());
             telemetry.addData("AutoForward Timer", autoForwardTimer.time());
             telemetry.addData("Ball Visible Timer", ballVisibleTimer.time());
-            telemetry.addData("Shooter Gate Delay", "%.2f/%.2f s",
-                    Math.min(shooterGateDelayTimer.time(), ShootingConfig.SHOOTING_GATE_OPEN_DELAY_SEC),
-                    ShootingConfig.SHOOTING_GATE_OPEN_DELAY_SEC);
+            telemetry.addData("Pollen Meter Delay", "%.2f s", ShootingConfig.POLLEN_GATE_METER_DELAY_SEC);
+            telemetry.addData("Nectar Meter Delay", "%.2f s", ShootingConfig.NECTAR_GATE_METER_DELAY_SEC);
+            telemetry.addData("Pollen Gate Phase", pollenGateMeterPhase);
+            telemetry.addData("Nectar Gate Phase", nectarGateMeterPhase);
             telemetry.addData("Precision", "%.0f%%", (1.0 - gamepad1.right_trigger * (1.0 - DriveConfig.TELEOP_PRECISION_SCALE)) * 100);
             telemetry.addData("RPM LF", "%.1f", robot.drive.getLeftFrontRpm());
             telemetry.addData("RPM LR", "%.1f", robot.drive.getLeftRearRpm());
@@ -492,7 +478,6 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             telemetry.addData("Intake Kill", isIntakeKillSwitchOn ? "ON (X to toggle)" : "OFF (X to toggle)");
             telemetry.update();
 
-            prevShootRequested = isShootRequested;
             idle();
         }
 
@@ -537,6 +522,111 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         // Abort follower-owned driving and hand control back to teleop.
         robot.drive.stop();
         robot.drive.resumeTeleOpDrive();
+    }
+
+    private void applyIntakeAndShooting(
+            boolean isShootRequested,
+            boolean isGateOpenRequested,
+            boolean isIntakeReverseRequested
+    ) {
+        if (isIntakeReverseRequested) {
+            robot.intake.reverse();
+        } else if (isIntakeKillSwitchOn) {
+            robot.intake.stop();
+        } else if (isShootRequested) {
+            robot.intake.speed(IntakeConfig.TARGET_INTAKE_RPM_SLOW);
+        } else {
+            robot.intake.speed(IntakeConfig.TARGET_INTAKE_RPM_NORMAL);
+        }
+
+        if (isShootRequested) {
+            robot.shooting.startPollenShooter(ShootingConfig.TARGET_POLLEN_RPM);
+            robot.shooting.startNectarShooter(ShootingConfig.TARGET_NECTAR_RPM);
+        } else {
+            robot.shooting.stop();
+        }
+
+        if (isGateOpenRequested) {
+            openBothGates();
+        } else {
+            closeBothGates();
+        }
+    }
+
+    private void openBothGates() {
+        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_OPEN);
+        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_OPEN);
+    }
+
+    private void applyMeteredGatePositions() {
+        pollenGateMeterPhase = updateGateMeterPhase(
+                pollenGateMeterPhase,
+                pollenGateMeterTimer,
+                Math.max(0.0, ShootingConfig.POLLEN_GATE_METER_DELAY_SEC)
+        );
+        nectarGateMeterPhase = updateGateMeterPhase(
+                nectarGateMeterPhase,
+                nectarGateMeterTimer,
+                Math.max(0.0, ShootingConfig.NECTAR_GATE_METER_DELAY_SEC)
+        );
+
+        robot.shooting.pollenGatePosition(
+                positionForGatePhase(
+                        pollenGateMeterPhase,
+                        ShootingConfig.POLLEN_GATE_OPEN,
+                        ShootingConfig.POLLEN_GATE_CLOSE
+                )
+        );
+        robot.shooting.nectarGatePosition(
+                positionForGatePhase(
+                        nectarGateMeterPhase,
+                        ShootingConfig.NECTAR_GATE_OPEN,
+                        ShootingConfig.NECTAR_GATE_CLOSE
+                )
+        );
+    }
+
+    private GateMeterPhase updateGateMeterPhase(
+            GateMeterPhase currentPhase,
+            ElapsedTime phaseTimer,
+            double meterDelaySec
+    ) {
+        if (currentPhase == GateMeterPhase.READY_TO_OPEN) {
+            phaseTimer.reset();
+            return GateMeterPhase.OPEN;
+        }
+
+        if (phaseTimer.time() >= meterDelaySec) {
+            phaseTimer.reset();
+            return currentPhase == GateMeterPhase.OPEN
+                    ? GateMeterPhase.CLOSED
+                    : GateMeterPhase.OPEN;
+        }
+
+        return currentPhase;
+    }
+
+    private double positionForGatePhase(
+            GateMeterPhase phase,
+            double openPosition,
+            double closePosition
+    ) {
+        if (phase == GateMeterPhase.OPEN) {
+            return openPosition;
+        }
+        return closePosition;
+    }
+
+    private void closeBothGates() {
+        robot.shooting.pollenGatePosition(ShootingConfig.POLLEN_GATE_CLOSE);
+        robot.shooting.nectarGatePosition(ShootingConfig.NECTAR_GATE_CLOSE);
+    }
+
+    private void resetGateMetering() {
+        pollenGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
+        nectarGateMeterPhase = GateMeterPhase.READY_TO_OPEN;
+        pollenGateMeterTimer.reset();
+        nectarGateMeterTimer.reset();
     }
 
     public void applyTeleOpDrive(

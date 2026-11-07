@@ -30,12 +30,12 @@ public class RobotHardware {
     private DcMotorEx leftFrontMotor;
     private GoBildaPinpointDriver odo;
     private WebcamName webcam;
-    private DcMotorEx intakeFront;
     private DcMotorEx pollenLauncher;
     private DcMotorEx nectarLauncher;
     private DcMotorEx intakeMotor;
     private Servo nectargateServo;
     private Servo pollengateServo;
+    //private Servo intakeGuideServo;
     /**
      * Maps all hardware devices and enables manual bulk caching on every REV hub.
      * Must be called first inside RobotContainer.initialize(), before any subsystem init.
@@ -82,9 +82,6 @@ public class RobotHardware {
         //   liftMotor = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.LIFT_MOTOR);
         //   liftMotor.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         //if intake is not null let power go down slowly when stopped
-        if (intakeFront != null) {
-            intakeFront.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
-        }
 
         pollenLauncher = hardwareMap.get(DcMotorEx.class, RobotHardwareNames.POLLEN_LAUNCHER);
         pollenLauncher.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
@@ -99,6 +96,7 @@ public class RobotHardware {
 
         nectargateServo = hardwareMap.get(Servo.class, RobotHardwareNames.NECTAR_GATE_SERVO);
 
+        //intakeGuideServo = hardwareMap.get(Servo.class, RobotHardwareNames.INTAKE_GUIDE_SERVO);
     }
 
     /**
@@ -140,28 +138,20 @@ public class RobotHardware {
     public DcMotorEx getRightFrontMotor() {
         return rightFrontMotor;
     }
-
     public DcMotorEx getRightRearMotor() {
         return rightRearMotor;
     }
-
     public DcMotorEx getLeftRearMotor() {
         return leftRearMotor;
     }
-
     public DcMotorEx getLeftFrontMotor() {
         return leftFrontMotor;
     }
-
     public GoBildaPinpointDriver getPinpoint() {
         return odo;
     }
-
     public WebcamName getWebcam() {
         return webcam;
-    }
-    public DcMotorEx getIntakeFront() {
-        return intakeFront;
     }
     public DcMotorEx getPollenLauncher() {
         return pollenLauncher;
@@ -178,4 +168,9 @@ public class RobotHardware {
     public Servo getPollengateServo() {
         return pollengateServo;
     }
+    /*public Servo getIntakeGuideServo() {
+        return intakeGuideServo;
+    }
+
+     */
 }

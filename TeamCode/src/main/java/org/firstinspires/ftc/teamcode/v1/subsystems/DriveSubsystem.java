@@ -10,7 +10,7 @@ import com.qualcomm.robotcore.util.RobotLog;
 
 import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
-import org.firstinspires.ftc.teamcode.v1.testing.pedroPathing.pedro.Constants;
+import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
 
 public class DriveSubsystem {
 
@@ -19,12 +19,15 @@ public class DriveSubsystem {
     private final RobotHardware hardware;
     private Follower follower;
     private String initError = null;
+    private double teleOpForwardCommand = 0.0;
+    private double teleOpStrafeCommand = 0.0;
+    private double teleOpTurnCommand = 0.0;
 
     public DriveSubsystem(HardwareMap hardwareMap, RobotHardware hardware) {
         this.hardware = hardware;
 
         try {
-            follower = Constants.createFollower(hardwareMap);
+            follower = PedroPathingConstants.createFollower(hardwareMap);
         } catch (Exception e) {
             RobotLog.ee(TAG, e, "Follower initialization failed");
             initError = e.getClass().getSimpleName() + ": " + e.getMessage();
@@ -50,6 +53,9 @@ public class DriveSubsystem {
         if (follower != null) {
             follower.stop();
         }
+        teleOpForwardCommand = 0.0;
+        teleOpStrafeCommand = 0.0;
+        teleOpTurnCommand = 0.0;
     }
 
     // TeleOp
@@ -60,10 +66,32 @@ public class DriveSubsystem {
             double turn
     ) {
         if (follower != null) {
-            follower.manual(
+            teleOpForwardCommand = rampTowards(
+                    teleOpForwardCommand,
                     forward,
-                    turn * DriveConfig.TELEOP_ROTATION_SCALE,
-                    strafe
+                    DriveConfig.TELEOP_COMMAND_RAMP_UP_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_RAMP_DOWN_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_STOP_EPSILON
+            );
+            teleOpStrafeCommand = rampTowards(
+                    teleOpStrafeCommand,
+                    strafe,
+                    DriveConfig.TELEOP_COMMAND_RAMP_UP_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_RAMP_DOWN_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_STOP_EPSILON
+            );
+            teleOpTurnCommand = rampTowards(
+                    teleOpTurnCommand,
+                    turn,
+                    DriveConfig.TELEOP_COMMAND_RAMP_UP_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_RAMP_DOWN_PER_LOOP,
+                    DriveConfig.TELEOP_COMMAND_STOP_EPSILON
+            );
+
+            follower.manual(
+                    teleOpForwardCommand,
+                    teleOpTurnCommand * DriveConfig.TELEOP_ROTATION_SCALE,
+                    teleOpStrafeCommand
             );
         }
     }
@@ -143,5 +171,27 @@ public class DriveSubsystem {
         }
 
         return ticksPerSecond * 60.0 / ticksPerRev;
+    }
+
+    private static double rampTowards(
+            double current,
+            double target,
+            double rampUpPerLoop,
+            double rampDownPerLoop,
+            double stopEpsilon
+    ) {
+        double delta = target - current;
+        if (Math.abs(delta) <= stopEpsilon) {
+            return target;
+        }
+
+        boolean isMovingTowardZero = Math.abs(target) < Math.abs(current);
+        double maxStep = isMovingTowardZero ? rampDownPerLoop : rampUpPerLoop;
+        if (maxStep <= 0.0) {
+            return target;
+        }
+
+        double boundedStep = Math.min(Math.abs(delta), maxStep);
+        return current + Math.signum(delta) * boundedStep;
     }
 }

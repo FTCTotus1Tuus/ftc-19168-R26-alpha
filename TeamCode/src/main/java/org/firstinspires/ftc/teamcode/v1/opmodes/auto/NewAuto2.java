@@ -46,6 +46,7 @@ public class NewAuto2 extends AutonomousBase {
     private int pathState;
     private Timer pathTimer, opmodeTimer;
     private int STANDARD_PATH_TIMEOUT = 5;
+    private static final double PATH_START_SETTLE_SEC = 0.15;
 
     private void seedLocalizationToPlannedStart() {
         GoBildaPinpointDriver pinpoint = robot.hardware.getPinpoint();
@@ -112,11 +113,12 @@ public class NewAuto2 extends AutonomousBase {
 
         pathTimer = new Timer();
         opmodeTimer = new Timer();
+        pathTimer.reset();
         opmodeTimer.reset();
 
         while (opModeInInit() && !isStopRequested()) {
             robot.hardware.clearBulkCache();
-            seedLocalizationToPlannedStart();
+            //seedLocalizationToPlannedStart();
             robot.drive.update();
             telemetry.addData("Planned Start", plannedStartPose);
             telemetry.addData("Live Pose", robot.drive.getPose());
@@ -140,10 +142,14 @@ public class NewAuto2 extends AutonomousBase {
 
         telemetry.update();
 
-        seedLocalizationToPlannedStart();
+        //seedLocalizationToPlannedStart();
+        setPathState(0);
 
         // ── Wait For Start ────────────────────────────────────────────────────────────────────────────────
         while (opModeIsActive() && !isStopRequested()) {
+
+            // In MANUAL bulk-cache mode this must happen before any read/update work.
+            robot.hardware.clearBulkCache();
 
             // Pedro follower must be updated every loop
             robot.drive.update();
@@ -169,22 +175,42 @@ public class NewAuto2 extends AutonomousBase {
 
         switch (pathState) {
             case 0:
-                if (!robot.drive.isFollowing() || pathTimer.seconds() > STANDARD_PATH_TIMEOUT) {
+                // Start the first segment immediately once autonomous is active.
+                if (!robot.drive.isFollowing()) {
                     robot.drive.followPath(pathOne);
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 1:
+                //if (pathTimer.seconds() < PATH_START_SETTLE_SEC) {
+                //    break;
+                //}
                 if (!robot.drive.isFollowing() || pathTimer.seconds() > STANDARD_PATH_TIMEOUT) {
-                    robot.drive.followPath(pathTwo);
+                    if (pathTwo != null) {
+                        robot.drive.followPath(pathTwo);
+                    }
                     setPathState(pathState + 1);
                 }
                 break;
 
             case 2:
+                if (pathTimer.seconds() < PATH_START_SETTLE_SEC) {
+                    break;
+                }
                 if (!robot.drive.isFollowing() || pathTimer.seconds() > STANDARD_PATH_TIMEOUT) {
-                    robot.drive.followPath(pathThree);
+                    if (pathThree != null) {
+                        robot.drive.followPath(pathThree);
+                    }
+                    setPathState(3);
+                }
+                break;
+
+            case 3:
+                if (pathTimer.seconds() < PATH_START_SETTLE_SEC) {
+                    break;
+                }
+                if (!robot.drive.isFollowing() || pathTimer.seconds() > STANDARD_PATH_TIMEOUT) {
                     setPathState(-1);
                 }
                 break;

@@ -36,17 +36,14 @@ public class ShootingConfig {
     public static double NECTAR_MAX_RPM = 3000;
     public static double TARGET_NECTAR_RPM = 52;
 
-
     //Gate Positions
-    public static double POLLEN_GATE_METER_DELAY_SEC = 1;
-    public static double NECTAR_GATE_METER_DELAY_SEC = 1;
+    public static double POLLEN_GATE_METER_DELAY_SEC = 0.7;
+    public static double NECTAR_GATE_METER_DELAY_SEC = 0.7;
 
-    public static double POLLEN_GATE_OPEN = 0.15;
+    public static double POLLEN_GATE_OPEN = 0.12;
     public static double POLLEN_GATE_CLOSE = 0;
-    public static double NECTAR_GATE_OPEN = 0.85;
+    public static double NECTAR_GATE_OPEN = 0.88;
     public static double NECTAR_GATE_CLOSE = 1;
-
-    public static double SHOOTING_GATE_OPEN_DELAY_SEC = 5.0;
 
     public static double[] pollenPidOutput = {0, 0, 0, 0};
     public static double[] nectarPidOutput = {0, 0, 0, 0};

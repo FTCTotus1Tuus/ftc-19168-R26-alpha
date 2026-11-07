@@ -21,12 +21,15 @@ public final class DriveConfig {
     public static double POSE_RESET_ROBOT_CENTER_OFFSET_Y = 8.25;
 
     // TELEOP_*: driver control shaping.
-    public static double TELEOP_ROTATION_SCALE = 0.7;
-    public static double TELEOP_SPEED_SCALE = 0.7;
+    public static double TELEOP_ROTATION_SCALE = 0.6;
+    public static double TELEOP_SPEED_SCALE = 0.4;
     public static double TELEOP_SPEED_SCALE_TURN = 0.5;
     public static double TELEOP_INPUT_EXPONENT_FORWARD = 3.0;
     public static double TELEOP_INPUT_EXPONENT_STRAFE = 1.5;
     public static double TELEOP_DRIVE_DEADZONE = 0.1;
+    public static double TELEOP_COMMAND_RAMP_UP_PER_LOOP = 0.12;
+    public static double TELEOP_COMMAND_RAMP_DOWN_PER_LOOP = 0.08;
+    public static double TELEOP_COMMAND_STOP_EPSILON = 0.01;
 
     /**
      * Selects alliance for field-centric heading offset.
