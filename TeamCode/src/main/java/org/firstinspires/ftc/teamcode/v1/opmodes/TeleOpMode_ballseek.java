@@ -16,8 +16,6 @@ import com.qualcomm.robotcore.util.Range;
 import org.firstinspires.ftc.teamcode.v1.config.IntakeConfig;
 import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
-import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
-import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
 /**
@@ -111,7 +109,7 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         // one-time "rising-edge" actions on the first loop.
         prevAButtonPressed = gamepad1.a;
         prevBButtonPressed = gamepad1.b;
-        prevXButtonPressed = gamepad1.x;
+        prevXButtonPressed = gamepad2.x;
         prevBackPressed = gamepad1.back;
         prevStartPressed = gamepad1.start;
         prevLeftBumperPressed = gamepad1.left_bumper;
@@ -142,13 +140,13 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             prevBackPressed = backPressed;
 
              */
-           /*
-            if (gamepad1.y) {
-                robot.intake.guideServoPos(IntakeConfig.INTAKE_GUIDE_CLOSE);
+
+            if (gamepad2.y) {
+                robot.intake.scoopServoPos(IntakeConfig.FLOWER_SCOOP_UP);
             } else {
-                robot.intake.guideServoPos(IntakeConfig.INTAKE_GUIDE_OPEN);
+                robot.intake.scoopServoPos(IntakeConfig.FLOWER_SCOOP_DOWN);
             }
-            */
+
 
 
 
@@ -192,10 +190,10 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             }
             prevAButtonPressed = aPressed;
 
-            boolean isIntakeReverseRequested = gamepad1.b;
+            boolean isIntakeReverseRequested = gamepad2.b;
             prevBButtonPressed = isIntakeReverseRequested;
 
-            boolean xPressed = gamepad1.x;
+            boolean xPressed = gamepad2.x;
             if (xPressed && !prevXButtonPressed) {
                 isIntakeKillSwitchOn = !isIntakeKillSwitchOn;
             }

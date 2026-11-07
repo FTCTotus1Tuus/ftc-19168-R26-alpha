@@ -35,7 +35,8 @@ public class RobotHardware {
     private DcMotorEx intakeMotor;
     private Servo nectargateServo;
     private Servo pollengateServo;
-    //private Servo intakeGuideServo;
+    private Servo flowerscoopServo;
+
     /**
      * Maps all hardware devices and enables manual bulk caching on every REV hub.
      * Must be called first inside RobotContainer.initialize(), before any subsystem init.
@@ -96,7 +97,7 @@ public class RobotHardware {
 
         nectargateServo = hardwareMap.get(Servo.class, RobotHardwareNames.NECTAR_GATE_SERVO);
 
-        //intakeGuideServo = hardwareMap.get(Servo.class, RobotHardwareNames.INTAKE_GUIDE_SERVO);
+        flowerscoopServo = hardwareMap.get(Servo.class, RobotHardwareNames.FLOWER_SCOOP_SERVO);
     }
 
     /**
@@ -168,9 +169,7 @@ public class RobotHardware {
     public Servo getPollengateServo() {
         return pollengateServo;
     }
-    /*public Servo getIntakeGuideServo() {
-        return intakeGuideServo;
-    }
+    public Servo getfloweerscoopServo() { return flowerscoopServo;}
 
-     */
+
 }

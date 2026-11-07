@@ -21,6 +21,6 @@ public class IntakeConfig {
     public static double TARGET_INTAKE_RPM_NORMAL = 60;
     public static double TARGET_INTAKE_RPM_SLOW = 11;
     public static double[] intakePidOutput = {0, 0, 0, 0};
-    public static double INTAKE_GUIDE_OPEN = 0.5;
-    public static double INTAKE_GUIDE_CLOSE = 0;
+    public static double FLOWER_SCOOP_UP= 0.1;
+    public static double FLOWER_SCOOP_DOWN = 0.75;
 }

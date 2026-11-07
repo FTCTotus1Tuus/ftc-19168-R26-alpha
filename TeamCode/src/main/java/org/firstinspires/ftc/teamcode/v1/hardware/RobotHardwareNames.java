@@ -21,6 +21,6 @@ public final class RobotHardwareNames {
     public static final String POLLEN_GATE_SERVO = "pollengateServo";
     public static final String NECTAR_GATE_SERVO = "nectargateServo";
     public static final String INTAKE_MOTOR= "intakeMotor";
-    //public static final String INTAKE_GUIDE_SERVO = "intakeguideservo";
+    public static final String FLOWER_SCOOP_SERVO = "flowerscoop";
 }
 

@@ -72,11 +72,11 @@ public class IntakeSubsystem {
     public void start(){
         speed(IntakeConfig.TARGET_INTAKE_RPM_NORMAL);
     };
-/*
-    public void guideServoPos(double targetPos) {
-        hardware.getIntakeGuideServo().setPosition(targetPos);
+
+    public void scoopServoPos(double targetPos) {
+        hardware.getfloweerscoopServo().setPosition(targetPos);
     }
-*/
+
     public double getIntakeRpm() {
         DcMotorEx intakeMotor = hardware.getIntakeMotor();
         if (intakeMotor == null) {
