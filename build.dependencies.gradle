@@ -3,23 +3,33 @@ repositories {
     google() // Needed for androidx
     maven { url = "https://mymaven.bylazar.com/releases" }
     maven { url = "https://maven.brott.dev/" }        // FtcDashboard
-    maven { url 'https://repo.dairy.foundation/releases/'}
 }
 
 dependencies {
-    implementation 'org.firstinspires.ftc:Inspection:12.0.0'
-    implementation 'org.firstinspires.ftc:Blocks:'
+    implementation 'org.firstinspires.ftc:Inspection:11.1.0'
+    implementation 'org.firstinspires.ftc:Blocks:11.1.0'
     //noinspection Aligned16KB
-    implementation 'org.firstinspires.ftc:RobotCore:12.0.0'
-    implementation 'org.firstinspires.ftc:RobotServer:12.0.0'
-    implementation 'org.firstinspires.ftc:OnBotJava:12.0.0'
-    implementation 'org.firstinspires.ftc:Hardware:12.0.0'
-    implementation 'org.firstinspires.ftc:FtcCommon:12.0.0'
-    implementation 'org.firstinspires.ftc:Vision:12.0.0'
+    implementation 'org.firstinspires.ftc:RobotCore:11.1.0'
+    implementation 'org.firstinspires.ftc:RobotServer:11.1.0'
+    implementation 'org.firstinspires.ftc:OnBotJava:11.1.0'
+    implementation 'org.firstinspires.ftc:Hardware:11.1.0'
+    implementation 'org.firstinspires.ftc:FtcCommon:11.1.0'
+    implementation 'org.firstinspires.ftc:Vision:11.1.0'
     //noinspection GradleDependency
     implementation 'androidx.appcompat:appcompat:1.2.0'
-    implementation 'com.pedropathing:revhub:3.0.1'
-    implementation 'com.pedropathing:tuning:1.0.0'
-    implementation 'com.acmerobotics.dashboard:dashboard:0.6.0'
+    implementation 'com.pedropathing:ftc:2.1.2'
+    implementation 'com.pedropathing:telemetry:1.0.0'
+    // FtcDashboard (Sloth-compatible fork). com.pedropathing:tuning pulls in Sloth, which loads
+    // TeamCode in its own class loader; stock Dashboard edits a different copy of @Config classes.
+    implementation 'com.acmerobotics.slothboard:dashboard:0.3.2+0.6.0'
+    implementation 'dev.frozenmilk.sinister:Sloth:0.3.2'
+    // Panels remains disabled in the main app for now. We'll reintroduce it separately after
+    // Pedro tuning is stable without the extra startup hooks.
+    // implementation 'com.bylazar:fullpanels:1.0.12'
+
+    // FtcDashboard is added per-flavor in TeamCode/build.gradle:
+    //   standard       → full implementation (server runs, @Config live-tuning works)
+    //   panelsTuning   → compileOnly        (@Config annotation compiles; no server at runtime — Panels replaces it)
+    // Keeping it here would bundle the server in both flavors and cause a BindException in panelsTuning.
 }
 
