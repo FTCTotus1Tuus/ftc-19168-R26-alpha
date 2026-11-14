@@ -13,9 +13,11 @@ import org.firstinspires.ftc.teamcode.v1.config.DriveConfig;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import com.qualcomm.robotcore.util.Range;
 
+import org.firstinspires.ftc.teamcode.v1.config.AimConfig;
 import org.firstinspires.ftc.teamcode.v1.config.IntakeConfig;
 import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.config.TeleOpMode_ballseekConfig;
+import org.firstinspires.ftc.teamcode.v1.config.VisionConfig;
 import org.firstinspires.ftc.teamcode.v1.services.VisionService;
 
 /**
@@ -339,6 +341,29 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 exitSeekMode();
             }
 
+            // 5.5 Auto-aim: while gamepad1.left_bumper is HELD, rotate to center the alliance
+            //     goal AprilTag. Held (not toggled), so letting go instantly returns turning to
+            //     the driver. The left stick still drives/strafes while aiming. If the tag is
+            //     not in view, the right stick keeps working as normal.
+            boolean isAimRequested = gamepad1.left_bumper;
+            int goalTagId = DriveConfig.TELEOP_FIELD_CENTRIC_IS_RED_ALLIANCE
+                    ? VisionConfig.APRILTAG_ID_RED_GOAL
+                    : VisionConfig.APRILTAG_ID_BLUE_GOAL;
+            VisionService.TagTarget goalTag = robot.vision.getAprilTagTarget(goalTagId);
+            if (isAimRequested && isSeekMode) {
+                // Aiming and ball seek both want the turn axis; aiming wins.
+                isSeekMode = false;
+                exitSeekMode();
+            }
+            Double aimTurnOverride = null; // null = driver controls turn
+            boolean isAimedAtGoal = false;
+            if (isAimRequested && goalTag.isVisible) {
+                double aimError = goalTag.normalizedXError - AimConfig.AIM_X_OFFSET;
+                isAimedAtGoal = Math.abs(aimError) <= AimConfig.AIM_CENTER_TOLERANCE;
+                // Negative sign: same convention as ball seek (tag on the right → turn right).
+                aimTurnOverride = isAimedAtGoal ? 0.0 : -computeAimTurn(aimError);
+            }
+
 
             if (!isSeekMode)  {
                 applyTeleOpDrive(
@@ -358,7 +383,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                         DriveConfig.TELEOP_FIELD_CENTRIC_BLUE_OFFSET_RAD,
                         isFieldCentric,
                         robot.drive.getPose(),
-                        false // TODO: wire this up when AutoParking is built
+                        false, // TODO: wire this up when AutoParking is built
+                        aimTurnOverride
                 );
                 applyIntakeAndShooting(isShootRequested, isGateOpenRequested, isIntakeReverseRequested);
 
@@ -390,6 +416,19 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 applyIntakeAndShooting(isShootRequested, isGateOpenRequested, isIntakeReverseRequested);
             }
 
+            telemetry.addData("Tags Seen", robot.vision.describeVisibleTagIds());
+            telemetry.addData(
+                    "Aim (hold LB)",
+                    "%s | goal tag %d %s | err %.3f | %s",
+                    isAimRequested ? "ON" : "off",
+                    goalTagId,
+                    goalTag.isVisible ? "VISIBLE" : "not seen",
+                    goalTag.normalizedXError,
+                    isAimedAtGoal ? "ON TARGET" : "-"
+            );
+            if (goalTag.hasPose) {
+                telemetry.addData("Goal Range/Bearing", "%.1f in / %.1f°", goalTag.rangeIn, goalTag.bearingDeg);
+            }
             telemetry.addData("Ball Visible", target.isVisible);
             telemetry.addData("Ball X Err", "%.3f", target.normalizedXError);
             telemetry.addData("Ball Radius", "%.1f px", target.radiusPx);
@@ -490,6 +529,16 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             angleRad += 2.0 * Math.PI;
         }
         return angleRad;
+    }
+
+    /** Proportional turn toward the tag, clamped between AIM_TURN_MIN and AIM_TURN_MAX. */
+    private static double computeAimTurn(double aimError) {
+        double magnitude = Range.clip(
+                Math.abs(aimError) * AimConfig.AIM_TURN_KP,
+                AimConfig.AIM_TURN_MIN,
+                AimConfig.AIM_TURN_MAX
+        );
+        return Math.signum(aimError) * magnitude;
     }
 
     private Pose getLocationAPose() {
@@ -644,7 +693,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             double blueAllianceOffsetRad,
             boolean isFieldCentric,
             Pose robotPose,
-            boolean isAutoParking
+            boolean isAutoParking,
+            Double turnOverride // non-null = auto-aim owns the turn axis this loop
     ) {
         if (isAutoParking) {
             // Auto-park owns drive commands while active.
@@ -697,10 +747,16 @@ public class TeleOpMode_ballseek extends RobotOpMode {
             commandY = shapedX * Math.sin(heading) + shapedY * Math.cos(heading);
         }
 
+        // Auto-aim turn is passed straight through (like ball seek does), so it isn't
+        // reduced by the driver's precision trigger or rotation scale.
+        double turnCommand = (turnOverride != null)
+                ? turnOverride
+                : shapedR * rotationScale * precisionMultiplier;
+
         robot.drive.setTeleOpDrive(
                 commandY * driveScale * precisionMultiplier,
                 commandX * driveScale * precisionMultiplier,
-                shapedR * rotationScale * precisionMultiplier
+                turnCommand
         );
     }
 

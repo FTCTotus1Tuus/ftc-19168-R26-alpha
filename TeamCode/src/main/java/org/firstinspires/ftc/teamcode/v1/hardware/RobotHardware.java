@@ -69,13 +69,12 @@ public class RobotHardware {
         }
 
         // Optional vision hardware: Logitech webcam on USB.
-        /*
+        // Fail-safe: if the webcam is unplugged or misnamed, vision is simply skipped.
         try {
             webcam = hardwareMap.get(WebcamName.class, RobotHardwareNames.WEBCAM_NAME);
         } catch (Exception ignored) {
             webcam = null;
         }
-         */
 
         // ── Season devices ───────────────────────────────────────────────────────────────────────
         // Add hardwareMap.get() calls here as new mechanisms are added each season.

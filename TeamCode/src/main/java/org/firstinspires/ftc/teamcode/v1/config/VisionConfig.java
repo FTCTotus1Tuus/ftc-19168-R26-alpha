@@ -21,6 +21,15 @@ public final class VisionConfig {
     public static int APRILTAG_ID_CENTER = 2;
     public static int APRILTAG_ID_RIGHT = 3;
 
+    // DECODE goal AprilTags (from the game manual): blue goal = 20, red goal = 24.
+    // Tags 21-23 are on the obelisk (motif), not aim targets.
+    public static int APRILTAG_ID_BLUE_GOAL = 20;
+    public static int APRILTAG_ID_RED_GOAL = 24;
+
+    // AprilTag decimation: 1 = longest range / slowest, 3 = shortest range / fastest.
+    // Applied at INIT only — re-init the OpMode after changing it on the dashboard.
+    public static double APRILTAG_DECIMATION = 2;
+
     // Camera exposure/gain placeholders for future manual tuning.
     public static boolean USE_MANUAL_EXPOSURE = false;
     public static int EXPOSURE_MS = 8;

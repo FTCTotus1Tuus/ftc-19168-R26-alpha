@@ -62,7 +62,11 @@ public class VisionService {
             }
 
             // Build both processors up front so they can share one portal.
+            // Default builder loads the current season's tag library (DECODE goal tags 20 / 24).
             aprilTagProcessor = new AprilTagProcessor.Builder().build();
+            // Lower decimation = sees tags from farther away, but costs CPU. At 320x240 the
+            // image is already small, so this matters more than at the SDK's default res.
+            aprilTagProcessor.setDecimation((float) VisionConfig.APRILTAG_DECIMATION);
 
             ballProcessor = new ColorBlobLocatorProcessor.Builder()
                     .setTargetColorRange(ColorRange.ARTIFACT_PURPLE)
@@ -114,6 +118,78 @@ public class VisionService {
             return Collections.emptyList();
         }
         return Collections.unmodifiableList(new ArrayList<>(aprilTagProcessor.getDetections()));
+    }
+
+    /** Snapshot of one AprilTag as seen this loop. */
+    public static final class TagTarget {
+        public final boolean isVisible;
+        public final int id;
+        public final double normalizedXError; // -1..1, right is positive (same convention as BallTarget)
+        public final boolean hasPose;          // true only if the SDK knows this tag's size + camera calibration
+        public final double rangeIn;           // valid only when hasPose
+        public final double bearingDeg;        // valid only when hasPose
+
+        public TagTarget(boolean isVisible, int id, double normalizedXError,
+                         boolean hasPose, double rangeIn, double bearingDeg) {
+            this.isVisible = isVisible;
+            this.id = id;
+            this.normalizedXError = normalizedXError;
+            this.hasPose = hasPose;
+            this.rangeIn = rangeIn;
+            this.bearingDeg = bearingDeg;
+        }
+
+        public static TagTarget notVisible(int id) {
+            return new TagTarget(false, id, 0.0, false, 0.0, 0.0);
+        }
+    }
+
+    /**
+     * Finds the tag with the given ID in the latest frame.
+     * Aiming uses the tag's pixel center (works without camera calibration);
+     * range/bearing are extras for telemetry when the SDK can compute them.
+     */
+    public TagTarget getAprilTagTarget(int tagId) {
+        if (aprilTagProcessor == null) {
+            return TagTarget.notVisible(tagId);
+        }
+        List<AprilTagDetection> detections = aprilTagProcessor.getDetections();
+        if (detections == null) {
+            return TagTarget.notVisible(tagId);
+        }
+        for (AprilTagDetection detection : detections) {
+            if (detection.id != tagId) {
+                continue;
+            }
+            double frameCenterX = VisionConfig.BALL_CAMERA_WIDTH_PX * 0.5;
+            double normalizedXError = (detection.center.x - frameCenterX) / frameCenterX;
+            boolean hasPose = detection.metadata != null && detection.ftcPose != null;
+            return new TagTarget(
+                    true,
+                    detection.id,
+                    normalizedXError,
+                    hasPose,
+                    hasPose ? detection.ftcPose.range : 0.0,
+                    hasPose ? detection.ftcPose.bearing : 0.0
+            );
+        }
+        return TagTarget.notVisible(tagId);
+    }
+
+    /** Comma-separated IDs of every tag in view, for telemetry. "none" if empty. */
+    public String describeVisibleTagIds() {
+        List<AprilTagDetection> detections = getAprilTagDetections();
+        if (detections.isEmpty()) {
+            return "none";
+        }
+        StringBuilder ids = new StringBuilder();
+        for (AprilTagDetection detection : detections) {
+            if (ids.length() > 0) {
+                ids.append(", ");
+            }
+            ids.append(detection.id);
+        }
+        return ids.toString();
     }
 
     public static final class BallTarget {

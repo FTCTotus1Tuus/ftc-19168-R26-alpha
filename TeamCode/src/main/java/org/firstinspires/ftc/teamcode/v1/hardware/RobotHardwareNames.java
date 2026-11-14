@@ -15,7 +15,7 @@ public final class RobotHardwareNames {
     public static final String LEFT_REAR_MOTOR = "leftRear";
     public static final String LEFT_FRONT_MOTOR = "leftFront";
     public static final String PINPOINT = "odo";
-    //public static final String WEBCAM_NAME = "Webcam 1";
+    public static final String WEBCAM_NAME = "Webcam 1";
     public static final String POLLEN_LAUNCHER = "pollenLauncher";
     public static final String NECTAR_LAUNCHER = "nectarLauncher";
     public static final String POLLEN_GATE_SERVO = "pollengateServo";
