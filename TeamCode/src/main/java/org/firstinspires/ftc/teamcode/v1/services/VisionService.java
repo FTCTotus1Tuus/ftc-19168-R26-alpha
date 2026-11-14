@@ -12,6 +12,7 @@ import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 import org.firstinspires.ftc.vision.VisionPortal;
 import org.firstinspires.ftc.vision.apriltag.AprilTagDetection;
 import org.firstinspires.ftc.vision.apriltag.AprilTagProcessor;
+import org.firstinspires.ftc.vision.apriltag.AprilTagSingleDetection;
 import org.firstinspires.ftc.vision.opencv.Circle;
 import org.firstinspires.ftc.vision.opencv.ColorBlobLocatorProcessor;
 import org.firstinspires.ftc.vision.opencv.ColorRange;
@@ -158,19 +159,23 @@ public class VisionService {
             return TagTarget.notVisible(tagId);
         }
         for (AprilTagDetection detection : detections) {
-            if (detection.id != tagId) {
+            if (!(detection instanceof AprilTagSingleDetection)) {
+                continue;
+            }
+            AprilTagSingleDetection singleDetection = (AprilTagSingleDetection) detection;
+            if (singleDetection.id != tagId) {
                 continue;
             }
             double frameCenterX = VisionConfig.BALL_CAMERA_WIDTH_PX * 0.5;
-            double normalizedXError = (detection.center.x - frameCenterX) / frameCenterX;
-            boolean hasPose = detection.metadata != null && detection.ftcPose != null;
+            double normalizedXError = (singleDetection.center.x - frameCenterX) / frameCenterX;
+            boolean hasPose = singleDetection.metadata != null && singleDetection.ftcPose != null;
             return new TagTarget(
                     true,
-                    detection.id,
+                    singleDetection.id,
                     normalizedXError,
                     hasPose,
-                    hasPose ? detection.ftcPose.range : 0.0,
-                    hasPose ? detection.ftcPose.bearing : 0.0
+                    hasPose ? singleDetection.ftcPose.range : 0.0,
+                    hasPose ? singleDetection.ftcPose.bearing : 0.0
             );
         }
         return TagTarget.notVisible(tagId);
@@ -187,7 +192,11 @@ public class VisionService {
             if (ids.length() > 0) {
                 ids.append(", ");
             }
-            ids.append(detection.id);
+            if (detection instanceof AprilTagSingleDetection) {
+                ids.append(((AprilTagSingleDetection) detection).id);
+            } else {
+                ids.append("cluster");
+            }
         }
         return ids.toString();
     }
