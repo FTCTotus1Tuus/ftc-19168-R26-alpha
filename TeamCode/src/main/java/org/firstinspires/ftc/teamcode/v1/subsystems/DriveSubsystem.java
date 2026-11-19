@@ -90,8 +90,8 @@ public class DriveSubsystem {
 
             follower.manual(
                     teleOpForwardCommand,
-                    teleOpTurnCommand * DriveConfig.TELEOP_ROTATION_SCALE,
-                    teleOpStrafeCommand
+                    teleOpStrafeCommand,
+                    teleOpTurnCommand * DriveConfig.TELEOP_ROTATION_SCALE
             );
         }
     }

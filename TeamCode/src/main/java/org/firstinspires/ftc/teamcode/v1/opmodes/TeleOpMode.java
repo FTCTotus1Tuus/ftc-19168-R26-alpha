@@ -175,13 +175,13 @@ public class TeleOpMode extends RobotOpMode {
                 : (magnitude - deadzone) / (1.0 - deadzone);
         // Convert the scaled magnitude back into X/Y components by keeping the same
         // direction, then shrinking or growing the vector with translationScale.
-        double rawY = (translationScale == 0) ? 0 : (leftStickY / magnitude) * translationScale;
-        double rawX = (translationScale == 0) ? 0 : (leftStickX / magnitude) * translationScale;
-        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : rightStickX;
+        double rawY = (translationScale == 0) ? 0 : (-leftStickY / magnitude) * translationScale;
+        double rawX = (translationScale == 0) ? 0 : (-leftStickX / magnitude) * translationScale;
+        double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
-        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentStrafe);
-        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentForward);
+        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentForward);
+        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentStrafe);
         double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponentForward);
 
         // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
@@ -207,11 +207,12 @@ public class TeleOpMode extends RobotOpMode {
             commandY = shapedX * Math.sin(heading) + shapedY * Math.cos(heading);
         }
 
-        robot.drive.setTeleOpDrive(
-                commandY * driveScale * precisionMultiplier,
-                commandX * driveScale * precisionMultiplier,
-                shapedR * rotationScale * precisionMultiplier
-        );
+        double forwardPower = commandY * driveScale * precisionMultiplier;
+        double strafePower = commandX * driveScale * precisionMultiplier;
+        double turnPower = shapedR * rotationScale * precisionMultiplier;
+
+        // Pedro manual() expects (forward, strafe, turn) in that exact order.
+        robot.drive.setTeleOpDrive(forwardPower, strafePower, turnPower);
     }
 
 }

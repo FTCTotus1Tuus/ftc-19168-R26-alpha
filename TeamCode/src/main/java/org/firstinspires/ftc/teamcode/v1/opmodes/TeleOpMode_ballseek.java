@@ -720,8 +720,8 @@ public class TeleOpMode_ballseek extends RobotOpMode {
         double rawR = (Math.abs(rightStickX) <= deadzone) ? 0 : -rightStickX;
 
         // Exponential shaping gives finer low-speed control while preserving full-range output.
-        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentStrafe);
-        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentForward);
+        double shapedY = Math.signum(rawY) * Math.pow(Math.abs(rawY), inputExponentForward);
+        double shapedX = Math.signum(rawX) * Math.pow(Math.abs(rawX), inputExponentStrafe);
         double shapedR = Math.signum(rawR) * Math.pow(Math.abs(rawR), inputExponentForward);
 
         // Reduce forward/strafe speed when turning so rotation doesn't overpower translation.
@@ -753,11 +753,11 @@ public class TeleOpMode_ballseek extends RobotOpMode {
                 ? turnOverride
                 : shapedR * rotationScale * precisionMultiplier;
 
-        robot.drive.setTeleOpDrive(
-                commandY * driveScale * precisionMultiplier,
-                commandX * driveScale * precisionMultiplier,
-                turnCommand
-        );
+        double forwardPower = commandY * driveScale * precisionMultiplier;
+        double strafePower = commandX * driveScale * precisionMultiplier;
+
+        // Pedro manual() expects (forward, strafe, turn) in that exact order.
+        robot.drive.setTeleOpDrive(forwardPower, strafePower, turnCommand);
     }
 
 }
