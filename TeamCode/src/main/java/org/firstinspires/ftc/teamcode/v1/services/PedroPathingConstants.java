@@ -83,17 +83,24 @@ public final class PedroPathingConstants {
                     )
             );
 
+            /*
             c.maxAchievableForwardVelocity.set(.01*72.72923108818539);
             c.maxAchievableStrafeVelocity.set(.01*52.34323936525474);
             c.naturalForwardDeceleration.set(.01*85.01144677379789);
             c.naturalStrafeDeceleration.set(.01*104.49787535782846);
+
+             */
+            c.maxAchievableForwardVelocity.set(72.72923108818539);
+            c.maxAchievableStrafeVelocity.set(52.34323936525474);
+            c.naturalForwardDeceleration.set(85.01144677379789);
+            c.naturalStrafeDeceleration.set(104.49787535782846);
 
             // Explicitly disable velocity/acceleration caps here since these
             // legacy values came from a different constraints API.
             c.maxVelocityConstraint.set(ForesightConfig.Constraint.NONE);
             c.maxAccelerationConstraint.set(ForesightConfig.Constraint.NONE);
             c.maxDecelerationConstraint.set(ForesightConfig.Constraint.NONE);
-            c.maxPathSpeed.set(0.4);
+            c.maxPathSpeed.set(0.8);
         });
 
         // Mecanum drivetrain configuration.
@@ -104,9 +111,9 @@ public final class PedroPathingConstants {
             c.backRightName.set(RobotHardwareNames.RIGHT_REAR_MOTOR);
 
             c.frontLeftDirection.set(DcMotorSimple.Direction.REVERSE);
-            c.backLeftDirection.set(DcMotorSimple.Direction.FORWARD);
+            c.backLeftDirection.set(DcMotorSimple.Direction.REVERSE);
             c.frontRightDirection.set(DcMotorSimple.Direction.FORWARD);
-            c.backRightDirection.set(DcMotorSimple.Direction.REVERSE);
+            c.backRightDirection.set(DcMotorSimple.Direction.FORWARD);
 
             c.manualBrakeMode.set(true);
 

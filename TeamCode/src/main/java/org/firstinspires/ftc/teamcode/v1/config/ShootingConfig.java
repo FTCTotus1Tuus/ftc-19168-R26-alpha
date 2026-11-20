@@ -4,6 +4,8 @@ import com.acmerobotics.dashboard.config.Config;
 
 @Config
 public class ShootingConfig {
+    public static double POLLEN_SHOOT_DURATION_SEC = 0.7;
+    public static double NECTAR_SHOOT_DURATION_SEC = 0.7;
     public static double SHOOTING_POWER_POLLEN = -0.3;
     public static double SHOOTING_POWER_NECTAR = -0.3;
     //Pollen PID constants

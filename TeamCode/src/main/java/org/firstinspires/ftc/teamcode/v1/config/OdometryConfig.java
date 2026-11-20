@@ -23,7 +23,7 @@ public final class OdometryConfig {
     // flip PINPOINT_FORWARD_ENCODER_REVERSED first.
     public static boolean PINPOINT_FORWARD_ENCODER_REVERSED = false;
     // Strafe sign tuned so autonomous Y-error correction does not run away left.
-    public static boolean PINPOINT_STRAFE_ENCODER_REVERSED = true;
+    public static boolean PINPOINT_STRAFE_ENCODER_REVERSED = false;
 
     // ENCODER_*: raw odometry wheel conversion placeholders.
     public static double ENCODER_ODOM_WHEEL_DIAMETER_IN = 1.37795;

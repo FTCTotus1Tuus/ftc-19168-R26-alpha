@@ -1,14 +1,12 @@
 package org.firstinspires.ftc.teamcode.v1.subsystems;
 
+import com.pedropathing.ivy.Command;
 import com.qualcomm.robotcore.hardware.HardwareMap;
-import com.qualcomm.robotcore.util.RobotLog;
 
-import org.firstinspires.ftc.teamcode.v1.config.IntakeConfig;
 import org.firstinspires.ftc.teamcode.v1.config.ShootingConfig;
 import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardware;
-import org.firstinspires.ftc.teamcode.v1.hardware.RobotHardwareNames;
 import org.firstinspires.ftc.teamcode.v1.services.MotorHelper;
-import org.firstinspires.ftc.teamcode.v1.services.PedroPathingConstants;
+
 public class ShootingSubsystem {
 
     private final RobotHardware hardware;
